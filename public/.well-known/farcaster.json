@@ -1,0 +1,18 @@
+{
+  "accountAssociation": {
+    "header": "eyJmaWQiOjEyMzQ1LCJ0eXBlIjoiY3VzdG9keSIsImtleSI6IjB4MTIzNDU2Nzg5MGFiY2RlZjEyMzQ1Njc4OTBhYmNkZWYxMjM0NTY3OCJ9",
+    "payload": "eyJkb21haW4iOiJ5b3VyZG9tYWluLmNvbSJ9",
+    "signature": "MHhhYmNkZWYxMjM0NTY3ODkwYWJjZGVmMTIzNDU2Nzg5MGFiY2RlZjEyMzQ1Njc4OTBhYmNkZWYxMjM0NTY3ODkw"
+  },
+  "frame": {
+    "version": "next",
+    "name": "Destiny War",
+    "iconUrl": "https://yourdomain.com/images/logo.png",
+    "homeUrl": "https://yourdomain.com",
+    "imageUrl": "https://yourdomain.com/og-image.png",
+    "buttonTitle": "Play Destiny War",
+    "splashImageUrl": "https://yourdomain.com/images/logo.png",
+    "splashBackgroundColor": "#000000",
+    "webhookUrl": "https://yourdomain.com/api/farcaster/webhook"
+  }
+}

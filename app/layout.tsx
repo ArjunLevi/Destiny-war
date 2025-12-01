@@ -4,6 +4,9 @@ import { Geist, Geist_Mono } from "next/font/google"
 import { Analytics } from "@vercel/analytics/next"
 import "./globals.css"
 import { MUIThemeProvider } from "@/lib/theme"
+import "@farcaster/auth-kit/styles.css"
+import { FarcasterAuthProvider } from "@/lib/farcaster/auth-provider"
+import { FarcasterMiniAppProvider } from "@/lib/farcaster/miniapp-provider"
 
 const _geist = Geist({ subsets: ["latin"] })
 const _geistMono = Geist_Mono({ subsets: ["latin"] })
@@ -40,10 +43,14 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`font-sans antialiased`}>
-        <MUIThemeProvider>
-          {children}
-          <Analytics />
-        </MUIThemeProvider>
+        <FarcasterMiniAppProvider>
+          <FarcasterAuthProvider>
+            <MUIThemeProvider>
+              {children}
+              <Analytics />
+            </MUIThemeProvider>
+          </FarcasterAuthProvider>
+        </FarcasterMiniAppProvider>
       </body>
     </html>
   )

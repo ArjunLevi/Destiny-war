@@ -3,7 +3,8 @@
 import { useState } from "react"
 import { Dialog, DialogContent, DialogTitle, Box, Button, Stack, Typography, CircularProgress } from "@mui/material"
 import { styled } from "@mui/material/styles"
-import { AccountBalanceWallet as WalletIcon, Link as LinkIcon } from "@mui/icons-material"
+import { AccountBalanceWallet as WalletIcon } from "@mui/icons-material"
+import { useSignIn, SignInButton } from "@farcaster/auth-kit"
 
 const WalletButton = styled(Button)(({ theme }) => ({
   padding: theme.spacing(2),
@@ -29,6 +30,21 @@ interface WalletConnectModalProps {
 export function WalletConnectModal({ open, onClose, onConnect }: WalletConnectModalProps) {
   const [connecting, setConnecting] = useState<"browser" | "farcaster" | null>(null)
   const [error, setError] = useState<string>("")
+
+  const { isSuccess, isError, data } = useSignIn({
+    onSuccess: ({ fid, username }) => {
+      console.log("[v0] Farcaster sign in successful:", { fid, username })
+      // Generate a wallet address from Farcaster FID
+      const farcasterAddress = `0xFC${fid.toString(16).padStart(38, "0")}`
+      onConnect(farcasterAddress, "farcaster")
+      onClose()
+    },
+    onError: (error) => {
+      console.error("[v0] Farcaster sign in error:", error)
+      setError("Failed to connect with Farcaster. Please try again.")
+      setConnecting(null)
+    },
+  })
 
   const connectBrowserWallet = async () => {
     setConnecting("browser")
@@ -83,28 +99,6 @@ export function WalletConnectModal({ open, onClose, onConnect }: WalletConnectMo
     }
   }
 
-  const connectFarcasterWallet = async () => {
-    setConnecting("farcaster")
-    setError("")
-
-    try {
-      // Farcaster wallet connection logic would go here
-      // For now, we'll simulate it
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      // In production, integrate with Farcaster's wallet connection SDK
-      // This is a placeholder for demonstration
-      const mockAddress = "0xFC" + Math.random().toString(16).slice(2, 40).toUpperCase()
-      onConnect(mockAddress, "farcaster")
-      onClose()
-    } catch (err: any) {
-      console.error("Farcaster wallet connection failed:", err)
-      setError(err.message || "Failed to connect Farcaster wallet")
-    } finally {
-      setConnecting(null)
-    }
-  }
-
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
       <DialogContent sx={{ p: 4 }}>
@@ -132,21 +126,20 @@ export function WalletConnectModal({ open, onClose, onConnect }: WalletConnectMo
             </Box>
           </WalletButton>
 
-          <WalletButton
-            fullWidth
-            onClick={connectFarcasterWallet}
-            disabled={connecting !== null}
-            startIcon={connecting === "farcaster" ? <CircularProgress size={20} /> : <LinkIcon />}
-          >
-            <Box sx={{ flex: 1, textAlign: "left" }}>
-              <Typography variant="body1" fontWeight={600}>
-                Farcaster Wallet
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Connect via Farcaster
-              </Typography>
-            </Box>
-          </WalletButton>
+          <Box>
+            <SignInButton
+              onSuccess={({ fid, username }) => {
+                console.log("[v0] Farcaster connected:", { fid, username })
+                const farcasterAddress = `0xFC${fid.toString(16).padStart(38, "0")}`
+                onConnect(farcasterAddress, "farcaster")
+                onClose()
+              }}
+              onError={(error) => {
+                console.error("[v0] Farcaster error:", error)
+                setError("Failed to connect with Farcaster")
+              }}
+            />
+          </Box>
         </Stack>
 
         {error && (
