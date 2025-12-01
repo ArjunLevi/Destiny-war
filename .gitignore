@@ -1,0 +1,14 @@
+# Hardhat files
+cache
+artifacts
+node_modules
+
+# Environment variables
+.env
+.env.local
+
+# Hardhat artifacts
+typechain-types
+
+# Contract deployments
+deployments
