@@ -1,18 +1,18 @@
 {
   "accountAssociation": {
-    "header": "eyJmaWQiOjEyMzQ1LCJ0eXBlIjoiY3VzdG9keSIsImtleSI6IjB4MTIzNDU2Nzg5MGFiY2RlZjEyMzQ1Njc4OTBhYmNkZWYxMjM0NTY3OCJ9",
-    "payload": "eyJkb21haW4iOiJ5b3VyZG9tYWluLmNvbSJ9",
-    "signature": "MHhhYmNkZWYxMjM0NTY3ODkwYWJjZGVmMTIzNDU2Nzg5MGFiY2RlZjEyMzQ1Njc4OTBhYmNkZWYxMjM0NTY3ODkw"
+    "header": "eyJmaWQiOjg2Nzg2OSwidHlwZSI6ImF1dGgiLCJrZXkiOiIweEY3YTE5OWYwMTkzNjExNUU2MWU3OWVDZTM4YmVGOGUwMTJFNjE5NDQifQ",
+    "payload": "eyJkb21haW4iOiJkZXN0aW55d2FyLmFwcCJ9",
+    "signature": "XPYOFza8KBF2NJz9p6Wqot5faxxgjKDkTg1ocBG6p3hee7EgJcjoz2D4f/nOskFX85PuE/N2UzupGa5mgQf3Uhw="
   },
   "frame": {
     "version": "next",
     "name": "Destiny War",
-    "iconUrl": "https://yourdomain.com/images/logo.png",
-    "homeUrl": "https://yourdomain.com",
-    "imageUrl": "https://yourdomain.com/og-image.png",
+    "iconUrl": "https://destinywar.app/images/logo.png",
+    "homeUrl": "https://destinywar.app",
+    "imageUrl": "https://destinywar.app/og-image.png",
     "buttonTitle": "Play Destiny War",
-    "splashImageUrl": "https://yourdomain.com/images/logo.png",
+    "splashImageUrl": "https://destinywar.app/images/logo.png",
     "splashBackgroundColor": "#000000",
-    "webhookUrl": "https://yourdomain.com/api/farcaster/webhook"
+    "webhookUrl": "https://destinywar.app/api/farcaster/webhook"
   }
 }
