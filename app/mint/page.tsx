@@ -89,9 +89,11 @@ export default function MintPage() {
     try {
       const provider = await getProvider()
       console.log("[v0] Minting character ID:", selectedCharacter)
+      console.log("[v0] Wallet address:", walletAddress)
 
       const result = await mintCharacter(selectedCharacter, provider)
 
+      console.log("[v0] Mint result:", result)
       setTxHash(result.transactionHash)
       setMintSuccess(true)
 
@@ -104,11 +106,8 @@ export default function MintPage() {
     } catch (err: any) {
       console.error("[v0] Minting error:", err)
       setError(err.message || "Failed to mint NFT. Please try again.")
-      setIsMinting(false)
     } finally {
-      if (mintSuccess) {
-        setIsMinting(false)
-      }
+      setIsMinting(false)
     }
   }
 

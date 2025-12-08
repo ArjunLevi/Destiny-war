@@ -4,12 +4,11 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-// import "@openzeppelin/contracts/utils/Counters.sol"; // DELETED: Fix 1
+import "@openzeppelin/contracts/utils/Counters.sol";
 
 contract DestinyWarNFT is ERC721, ERC721URIStorage, Ownable {
-    // using Counters for Counters.Counter; // DELETED: Fix 1
-    // Counters.Counter private _tokenIdCounter; // DELETED: Fix 1
-    uint256 private _tokenIdCounter; // NEW: Fix 1
+    using Counters for Counters.Counter;
+    Counters.Counter private _tokenIdCounter;
 
     uint256 public constant MINT_PRICE = 0.0001 ether;
     uint256 public constant MAX_SUPPLY = 10000;
@@ -31,20 +30,17 @@ contract DestinyWarNFT is ERC721, ERC721URIStorage, Ownable {
     event CharacterMinted(address indexed owner, uint256 indexed tokenId, CharacterType characterType);
     event CharacterLevelUp(uint256 indexed tokenId, uint256 newLevel);
     
-    // FIXED: Ownable no longer takes an address in the constructor (Fix 2A)
-    constructor() ERC721("Destiny War Character", "DWC") Ownable() {
-        // Contract initialized with deployer as owner
+    constructor() ERC721("Destiny War Character", "DWC") Ownable(0x979bd79e0a2d074d652ca9e03ac99f04cbf84316) {
+        // Contract initialized with owner set to provided address
     }
     
     function mintCharacter(CharacterType _characterType, string memory _tokenURI) public payable {
         require(msg.value >= MINT_PRICE, "Insufficient payment");
-        // FIXED: Using uint256 variable directly (Fix 1)
-        require(_tokenIdCounter < MAX_SUPPLY, "Max supply reached");
+        require(_tokenIdCounter.current() < MAX_SUPPLY, "Max supply reached");
         require(uint256(_characterType) <= 2, "Invalid character type");
         
-        // FIXED: Using uint256 variable directly (Fix 1)
-        uint256 tokenId = _tokenIdCounter;
-        _tokenIdCounter++; // FIXED: Simple increment (Fix 1)
+        uint256 tokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
         
         _safeMint(msg.sender, tokenId);
         _setTokenURI(tokenId, _tokenURI);
@@ -67,16 +63,39 @@ contract DestinyWarNFT is ERC721, ERC721URIStorage, Ownable {
         }
     }
     
-    // ... (omitting unchanged functions for brevity)
-    
-    function totalSupply() public view returns (uint256) {
-        // FIXED: Using uint256 variable directly (Fix 1)
-        return _tokenIdCounter;
+    function getCharacter(uint256 tokenId) public view returns (Character memory) {
+        require(_ownerOf(tokenId) != address(0), "Character does not exist");
+        return characters[tokenId];
     }
     
-    // FIXED: Added _burn implementation to resolve inheritance conflict (Fix 4)
-    function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
-        super._burn(tokenId);
+    function getOwnedTokens(address owner) public view returns (uint256[] memory) {
+        return ownedTokens[owner];
+    }
+    
+    function updateCharacterStats(uint256 tokenId, uint256 wins, uint256 losses) public onlyOwner {
+        require(_ownerOf(tokenId) != address(0), "Character does not exist");
+        characters[tokenId].wins = wins;
+        characters[tokenId].losses = losses;
+    }
+    
+    function levelUpCharacter(uint256 tokenId) public onlyOwner {
+        require(_ownerOf(tokenId) != address(0), "Character does not exist");
+        characters[tokenId].level++;
+        emit CharacterLevelUp(tokenId, characters[tokenId].level);
+    }
+    
+    function withdraw() public onlyOwner {
+        uint256 balance = address(this).balance;
+        require(balance > 0, "No funds to withdraw");
+        payable(owner()).transfer(balance);
+    }
+    
+    function setMintPrice(uint256 newPrice) public onlyOwner {
+        // Future functionality to update mint price if needed
+    }
+    
+    function totalSupply() public view returns (uint256) {
+        return _tokenIdCounter.current();
     }
     
     // Override functions
