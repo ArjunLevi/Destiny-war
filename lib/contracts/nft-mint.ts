@@ -16,7 +16,7 @@ const NFT_ABI = [
 
 // Deploy contract using: npx hardhat run scripts/deploy.js --network base
 export const NFT_CONTRACT_ADDRESS =
-  process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS || "0x0000000000000000000000000000000000000000"
+  process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS || "0xfcaB4bd2DB11b8776Bda910973404DeD4ec7dADA"
 
 // Character types enum matching the smart contract
 export enum CharacterType {

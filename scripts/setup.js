@@ -24,7 +24,7 @@ async function main() {
   }
 
   // Check for PRIVATE_KEY
-  let hasPrivateKey = envContent.includes("PRIVATE_KEY=")
+  let hasPrivateKey = envContent.includes("PRIVATE_KEY=") && !envContent.includes("PRIVATE_KEY=your_private_key_here")
 
   if (!hasPrivateKey) {
     console.log("❌ PRIVATE_KEY not found in .env file")
@@ -35,7 +35,12 @@ async function main() {
 
     if (addKey.toLowerCase() === "yes" || addKey.toLowerCase() === "y") {
       const privateKey = await question("Enter your private key (without 0x prefix): ")
-      envContent += `\nPRIVATE_KEY=${privateKey.replace("0x", "")}`
+      if (envContent.includes("PRIVATE_KEY=")) {
+        envContent = envContent.replace(/PRIVATE_KEY=.*/, `PRIVATE_KEY=${privateKey.replace("0x", "")}`)
+      } else {
+        envContent += `\nPRIVATE_KEY=${privateKey.replace("0x", "")}`
+      }
+      fs.writeFileSync(envPath, envContent)
       hasPrivateKey = true
     } else {
       console.log("\n❌ Cannot proceed without private key. Please add it to .env file manually.")
@@ -88,34 +93,37 @@ async function main() {
     console.log("\n📦 Deploying contract to Base mainnet...\n")
 
     try {
-      execSync("npm run deploy:base", { stdio: "inherit" })
+      execSync("npx hardhat run scripts/deploy.js --network base", { stdio: "inherit" })
 
       console.log("\n✅ Deployment complete!\n")
+      console.log("✅ Contract address automatically saved to .env.local\n")
       console.log("📝 Next steps:")
-      console.log("1. Copy the contract address from above")
-      console.log("2. Add it to your .env file as NEXT_PUBLIC_NFT_CONTRACT_ADDRESS=<address>")
-      console.log("3. Restart your dev server: npm run dev\n")
+      console.log("1. Restart your dev server: Ctrl+C then npm run dev")
+      console.log("2. Visit the mint page - it should now work!")
+      console.log("3. Test minting a character\n")
 
-      const contractAddress = await question("Enter the deployed contract address: ")
-
-      if (contractAddress.startsWith("0x")) {
-        envContent += `\nNEXT_PUBLIC_NFT_CONTRACT_ADDRESS=${contractAddress}`
-        fs.writeFileSync(envPath, envContent)
-        console.log("✅ Contract address saved to .env\n")
-
-        if (hasBasescanKey) {
-          console.log("🔍 Verifying contract on BaseScan...\n")
-          try {
-            execSync(`npx hardhat verify --network base ${contractAddress}`, { stdio: "inherit" })
-            console.log("\n✅ Contract verified on BaseScan!\n")
-          } catch (error) {
-            console.log("\n⚠️  Verification failed. You can verify manually later.\n")
+      if (hasBasescanKey) {
+        const verify = await question("Verify contract on BaseScan now? (yes/no): ")
+        if (verify.toLowerCase() === "yes" || verify.toLowerCase() === "y") {
+          const envLocalPath = path.join(process.cwd(), ".env.local")
+          if (fs.existsSync(envLocalPath)) {
+            const envLocalContent = fs.readFileSync(envLocalPath, "utf8")
+            const match = envLocalContent.match(/NEXT_PUBLIC_NFT_CONTRACT_ADDRESS=(.*)/)
+            if (match && match[1]) {
+              const contractAddress = match[1].trim()
+              console.log("\n🔍 Verifying contract on BaseScan...\n")
+              try {
+                execSync(`npx hardhat verify --network base ${contractAddress}`, { stdio: "inherit" })
+                console.log("\n✅ Contract verified on BaseScan!\n")
+              } catch (error) {
+                console.log("\n⚠️  Verification failed. You can verify manually later.\n")
+              }
+            }
           }
         }
-
-        console.log("🎉 Setup complete! Your contract is ready to use.")
-        console.log(`\nView your contract on BaseScan: https://basescan.org/address/${contractAddress}\n`)
       }
+
+      console.log("🎉 Setup complete! Your contract is ready to use.\n")
     } catch (error) {
       console.error("\n❌ Deployment failed:", error.message)
       console.log("\nPlease check:")
@@ -124,7 +132,7 @@ async function main() {
       console.log("3. Your network connection is stable\n")
     }
   } else {
-    console.log('\n📝 Setup saved. Run "npm run deploy:base" when ready to deploy.\n')
+    console.log('\n📝 Setup saved. Run "npm run deploy" when ready to deploy.\n')
   }
 
   rl.close()
