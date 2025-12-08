@@ -212,4 +212,4 @@ Visit `https://your-domain.com` and ensure:
 Need help? Check the troubleshooting section or reach out to the Destiny War community!
 \`\`\`
 
-```env file="" isHidden
+\`\`\`env file="" isHidden
