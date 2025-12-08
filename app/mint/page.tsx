@@ -10,6 +10,7 @@ import { Footer } from "@/components/footer"
 import { mintCharacter, getProvider, MINT_PRICE } from "@/lib/contracts/nft-mint"
 import { ethers } from "ethers"
 import { WalletConnectModal } from "@/components/wallet-connect-modal"
+import { useRouter } from "next/navigation"
 
 const CHARACTERS = [
   {
@@ -48,6 +49,7 @@ const CHARACTERS = [
 ]
 
 export default function MintPage() {
+  const router = useRouter()
   const [selectedCharacter, setSelectedCharacter] = useState<number | null>(null)
   const [isMinting, setIsMinting] = useState(false)
   const [mintSuccess, setMintSuccess] = useState(false)
@@ -56,6 +58,7 @@ export default function MintPage() {
   const [walletAddress, setWalletAddress] = useState("")
   const [showWalletModal, setShowWalletModal] = useState(false)
   const [txHash, setTxHash] = useState<string>("")
+  const [mintedTokenId, setMintedTokenId] = useState<number | null>(null)
 
   useEffect(() => {
     if (typeof window !== "undefined" && (window as any).ethereum) {
@@ -72,6 +75,12 @@ export default function MintPage() {
     setWalletAddress(address)
     setWalletConnected(true)
     console.log("[v0] Wallet connected on mint page:", address, "Type:", type)
+  }
+
+  const disconnectWallet = () => {
+    setWalletAddress("")
+    setWalletConnected(false)
+    console.log("[v0] Wallet disconnected on mint page")
   }
 
   const handleMint = async () => {
@@ -95,20 +104,19 @@ export default function MintPage() {
 
       console.log("[v0] Mint result:", result)
       setTxHash(result.transactionHash)
+      setMintedTokenId(result.tokenId)
       setMintSuccess(true)
-
-      // Reset after showing success
-      setTimeout(() => {
-        setMintSuccess(false)
-        setSelectedCharacter(null)
-        setTxHash("")
-      }, 5000)
     } catch (err: any) {
       console.error("[v0] Minting error:", err)
       setError(err.message || "Failed to mint NFT. Please try again.")
+      setIsMinting(false)
     } finally {
       setIsMinting(false)
     }
+  }
+
+  const handleStartPlaying = () => {
+    router.push("/play")
   }
 
   const selected = CHARACTERS.find((c) => c.id === selectedCharacter)
@@ -129,11 +137,16 @@ export default function MintPage() {
             Back to Home
           </Link>
           <Image src="/images/logo.png" alt="Destiny War" width={150} height={45} className="h-10 w-auto" />
-          <div className="w-24 text-right">
+          <div className="flex items-center gap-2">
             {walletConnected ? (
-              <span className="text-xs text-muted-foreground">
-                {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
-              </span>
+              <>
+                <span className="text-xs text-muted-foreground">
+                  {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
+                </span>
+                <Button size="sm" variant="outline" onClick={disconnectWallet}>
+                  Disconnect
+                </Button>
+              </>
             ) : (
               <Button size="sm" variant="outline" onClick={() => setShowWalletModal(true)}>
                 Connect
@@ -230,23 +243,25 @@ export default function MintPage() {
               </div>
 
               <div className="flex flex-col items-center gap-2">
-                <Button size="lg" onClick={handleMint} disabled={isMinting || mintSuccess} className="min-w-40 gap-2">
-                  {isMinting ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      Minting...
-                    </>
-                  ) : mintSuccess ? (
-                    <>
-                      <CheckCircle2 className="h-5 w-5" />
-                      Minted!
-                    </>
-                  ) : !walletConnected ? (
-                    "Connect Wallet to Mint"
-                  ) : (
-                    "Mint NFT"
-                  )}
-                </Button>
+                {mintSuccess ? (
+                  <Button size="lg" onClick={handleStartPlaying} className="min-w-40 gap-2">
+                    <CheckCircle2 className="h-5 w-5" />
+                    Start Playing
+                  </Button>
+                ) : (
+                  <Button size="lg" onClick={handleMint} disabled={isMinting} className="min-w-40 gap-2">
+                    {isMinting ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Minting...
+                      </>
+                    ) : !walletConnected ? (
+                      "Connect Wallet to Mint"
+                    ) : (
+                      "Mint NFT"
+                    )}
+                  </Button>
+                )}
                 {txHash && (
                   <a
                     href={`https://basescan.org/tx/${txHash}`}

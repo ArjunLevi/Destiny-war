@@ -158,6 +158,13 @@ export default function Home() {
     console.log("[v0] Wallet connected:", address, "Type:", type)
   }
 
+  const disconnectWallet = () => {
+    setWalletAddress("")
+    setWalletConnected(false)
+    setWalletType(null)
+    console.log("[v0] Wallet disconnected")
+  }
+
   const connectWallet = () => {
     setShowWalletModal(true)
   }
@@ -216,9 +223,20 @@ export default function Home() {
                 Leaderboard
               </Button>
             </Link>
-            <Button variant="contained" onClick={connectWallet} disabled={walletConnected}>
-              {walletConnected ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : "Connect Wallet"}
-            </Button>
+            {walletConnected ? (
+              <>
+                <Button variant="outlined" color="primary" disabled>
+                  {`${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`}
+                </Button>
+                <Button variant="contained" color="error" onClick={disconnectWallet}>
+                  Disconnect
+                </Button>
+              </>
+            ) : (
+              <Button variant="contained" onClick={connectWallet}>
+                Connect Wallet
+              </Button>
+            )}
           </Stack>
         </Toolbar>
       </AppBar>

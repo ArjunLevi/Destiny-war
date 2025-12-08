@@ -14,9 +14,9 @@ const NFT_ABI = [
   "event CharacterMinted(address indexed owner, uint256 indexed tokenId, uint8 indexed characterType)",
 ]
 
-// 🚨 ACTION REQUIRED: REPLACE THIS FALLBACK ADDRESS
-export const NFT_CONTRACT_ADDRESS ="0x9F459F64789f2B0b67DAB01708DdACD0E0a60BBb"
-  process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS || "0x979BD79e0a2D074D652CA9E03Ac99F04cBf84316" // <--- PASTE YOUR ADDRESS HERE
+// Deploy contract using: npx hardhat run scripts/deploy.js --network base
+export const NFT_CONTRACT_ADDRESS =
+  process.env.NEXT_PUBLIC_NFT_CONTRACT_ADDRESS || "0xfcaB4bd2DB11b8776Bda910973404DeD4ec7dADA"
 
 // Character types enum matching the smart contract
 export enum CharacterType {
@@ -90,16 +90,26 @@ export async function mintCharacter(characterId: number, provider: ethers.Browse
     const network = await provider.getNetwork()
     console.log("[v0] Current network:", network.chainId, network.name)
 
-    // Base Mainnet Check
     if (network.chainId !== 8453n) {
       throw new Error(
         `Wrong network detected. Please switch to Base Mainnet (Chain ID: 8453). Current: ${network.chainId}`,
       )
     }
 
-    const contract = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_ABI, signer)
-    const code = await provider.getCode(NFT_CONTRACT_ADDRESS)
+    const balance = await provider.getBalance(signerAddress)
+    const estimatedGas = 350000n * 1000000n // rough estimate with buffer
+    const totalRequired = MINT_PRICE + estimatedGas
 
+    console.log("[v0] Wallet balance:", ethers.formatEther(balance), "ETH")
+    console.log("[v0] Required amount:", ethers.formatEther(totalRequired), "ETH (including gas)")
+
+    if (balance < totalRequired) {
+      throw new Error(`Insufficient balance. You need at least ${ethers.formatEther(totalRequired)} ETH`)
+    }
+
+    const contract = new ethers.Contract(NFT_CONTRACT_ADDRESS, NFT_ABI, signer)
+
+    const code = await provider.getCode(NFT_CONTRACT_ADDRESS)
     if (code === "0x") {
       throw new Error(`No contract found at address ${NFT_CONTRACT_ADDRESS}. Please verify the contract is deployed.`)
     }
@@ -107,72 +117,38 @@ export async function mintCharacter(characterId: number, provider: ethers.Browse
     // Get character metadata
     const tokenURI = CHARACTER_METADATA[characterType as CharacterType]
 
-    // --- Dynamic Gas Estimation & Balance Check (EIP-1559 Compliant) ---
-
-    // 1. Estimate gas required for the transaction
-    const gasEstimate = await contract.mintCharacter.estimateGas(characterType, tokenURI, {
-      value: MINT_PRICE,
-    })
-
-    // 2. Add a safety buffer (e.g., 20%) to the estimated gas
-    const GAS_BUFFER_PERCENT = 120n // 20% buffer
-    const gasLimit = (gasEstimate * GAS_BUFFER_PERCENT) / 100n
-
-    // 3. Get current fee data for max cost calculation
-    const feeData = await provider.getFeeData()
-    // Use maxFeePerGas for the safest max cost estimate
-    const maxFeePerGas = feeData.maxFeePerGas
-
-    if (!maxFeePerGas) {
-      // Fallback or error if EIP-1559 data is not available
-      throw new Error("Could not fetch gas price data (maxFeePerGas).")
-    }
-
-    // Rough estimate of max possible fee: gasLimit * maxFeePerGas
-    const estimatedMaxGasCost = gasLimit * maxFeePerGas
-
-    const totalRequired = MINT_PRICE + estimatedMaxGasCost
-    const balance = await provider.getBalance(signerAddress)
-
-    console.log("[v0] Wallet balance:", ethers.formatEther(balance), "ETH")
-    console.log("[v0] Estimated Gas Limit (with 20% buffer):", gasLimit.toString())
-    console.log("[v0] Required amount (max):", ethers.formatEther(totalRequired), "ETH (Mint Price + Max Gas Fee)")
-
-    if (balance < totalRequired) {
-      throw new Error(`Insufficient balance. You need at least ${ethers.formatEther(totalRequired)} ETH`)
-    }
-    // --- End Dynamic Gas Estimation ---
-
     console.log("[v0] Minting with params:", {
       contractAddress: NFT_CONTRACT_ADDRESS,
       characterType,
       tokenURI: tokenURI.substring(0, 100) + "...",
       value: ethers.formatEther(MINT_PRICE),
       to: signerAddress,
-      gasLimit: gasLimit.toString(), // Log the dynamic limit
     })
 
     let tx
     try {
       tx = await contract.mintCharacter(characterType, tokenURI, {
         value: MINT_PRICE,
-        gasLimit: gasLimit, // Use the dynamically calculated gas limit
+        gasLimit: 350000,
       })
     } catch (txError: any) {
       console.error("[v0] Transaction creation failed:", txError)
 
       if (txError.code === "UNPREDICTABLE_GAS_LIMIT") {
-        throw new Error("Transaction would fail. Contract may have reverted the transaction (e.g., max supply reached).")
+        throw new Error("Transaction would fail. Contract may have reverted the transaction.")
       }
       throw txError
     }
 
     console.log("[v0] Transaction sent:", tx.hash)
+    console.log("[v0] Transaction details:", tx)
     console.log("[v0] Waiting for confirmation...")
 
     const receipt = await tx.wait()
 
     console.log("[v0] Transaction confirmed:", receipt.hash)
+    console.log("[v0] Recipient address:", signerAddress)
+    console.log("[v0] Receipt details:", receipt)
 
     let tokenId
     for (const log of receipt.logs) {
@@ -184,6 +160,8 @@ export async function mintCharacter(characterId: number, provider: ethers.Browse
         if (parsed && parsed.name === "CharacterMinted") {
           tokenId = parsed.args.tokenId.toString()
           console.log("[v0] Minted token ID:", tokenId)
+          console.log("[v0] Owner:", parsed.args.owner)
+          console.log("[v0] Character Type:", parsed.args.characterType)
           break
         }
       } catch (e) {
@@ -204,11 +182,23 @@ export async function mintCharacter(characterId: number, provider: ethers.Browse
     }
   } catch (error: any) {
     console.error("[v0] Mint failed:", error)
+    console.error("[v0] Error details:", {
+      code: error.code,
+      reason: error.reason,
+      message: error.message,
+      data: error.data,
+    })
 
     if (error.code === "INSUFFICIENT_FUNDS") {
       throw new Error("Insufficient ETH balance for minting + gas fees")
     } else if (error.code === "ACTION_REJECTED" || error.code === 4001) {
       throw new Error("Transaction was rejected by user")
+    } else if (error.code === "NETWORK_ERROR") {
+      throw new Error("Network connection error. Please check your internet connection and try again.")
+    } else if (error.message?.includes("Max supply reached")) {
+      throw new Error("Maximum supply of NFTs has been reached")
+    } else if (error.message?.includes("Insufficient payment")) {
+      throw new Error("Insufficient payment sent with transaction")
     } else if (error.message?.includes("Wrong network")) {
       throw error // Re-throw network errors as-is
     }
