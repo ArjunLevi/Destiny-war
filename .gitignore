@@ -1,14 +1,36 @@
-# Hardhat files
-cache
-artifacts
-node_modules
+# Dependencies
+/node_modules
 
-# Environment variables
+# Next.js
+/.next
+/out
+
+# Environment & secrets (never commit API keys or deploy keys)
 .env
-.env.local
+.env.*
+!.env.local.example
 
-# Hardhat artifacts
-typechain-types
+# TypeScript / build
+next-env.d.ts
+*.tsbuildinfo
 
-# Contract deployments
-deployments
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Remix / Solidity deps (installed locally for compile)
+/contracts/.deps
+
+# Vercel
+.vercel
+
+# IDE
+.idea
+.vscode/*
+!.vscode/extensions.json
