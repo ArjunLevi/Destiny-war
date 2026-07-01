@@ -10,21 +10,21 @@ export function useWriteContractWithBuilder(
 ) {
   const result = useWriteContract(...args);
 
-  const writeContract = useCallback<typeof result.writeContract>(
-    (variables, options) =>
+  const writeContract = useCallback(
+    ((variables, options) =>
       result.writeContract(
         { ...variables, dataSuffix: BUILDER_DATA_SUFFIX },
         options,
-      ),
+      )) as typeof result.writeContract,
     [result.writeContract],
   );
 
-  const writeContractAsync = useCallback<typeof result.writeContractAsync>(
-    (variables, options) =>
+  const writeContractAsync = useCallback(
+    ((variables, options) =>
       result.writeContractAsync(
         { ...variables, dataSuffix: BUILDER_DATA_SUFFIX },
         options,
-      ),
+      )) as typeof result.writeContractAsync,
     [result.writeContractAsync],
   );
 
