@@ -6,9 +6,9 @@ import {
   useAccount,
   useReadContract,
   useWaitForTransactionReceipt,
-  useWriteContract,
   useBalance,
 } from "wagmi";
+import { useWriteContractWithBuilder } from "@/lib/useWriteContractWithBuilder";
 import { base } from "wagmi/chains";
 import { Wallet, ConnectWallet } from "@coinbase/onchainkit/wallet";
 import { HEROES } from "@/lib/heroes";
@@ -75,7 +75,7 @@ function MintCard({ heroId }: { heroId: number }) {
     data: approveHash,
     isPending: approvePending,
     error: approveError,
-  } = useWriteContract();
+  } = useWriteContractWithBuilder();
   const { isLoading: approveConfirming, isSuccess: approveDone } =
     useWaitForTransactionReceipt({ hash: approveHash });
 
@@ -84,7 +84,7 @@ function MintCard({ heroId }: { heroId: number }) {
     data: mintHash,
     isPending: mintPending,
     error: mintError,
-  } = useWriteContract();
+  } = useWriteContractWithBuilder();
   const { isLoading: mintConfirming, isSuccess: mintDone } =
     useWaitForTransactionReceipt({ hash: mintHash });
 

@@ -5,9 +5,9 @@ import {
   useAccount,
   useReadContract,
   useWaitForTransactionReceipt,
-  useWriteContract,
   useWatchContractEvent,
 } from "wagmi";
+import { useWriteContractWithBuilder } from "@/lib/useWriteContractWithBuilder";
 import {
   Wallet,
   ConnectWallet,
@@ -65,7 +65,7 @@ function HeroUpgradeCard({
     query: { enabled: hubConfigured },
   });
 
-  const { writeContract, data: hash, isPending } = useWriteContract();
+  const { writeContract, data: hash, isPending } = useWriteContractWithBuilder();
   const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });
@@ -167,7 +167,7 @@ export function HeroLoopTab() {
   });
 
   const { writeContract, data: txHash, isPending, error: txError } =
-    useWriteContract();
+    useWriteContractWithBuilder();
   const { isLoading: confirming } = useWaitForTransactionReceipt({ hash: txHash });
 
   useWatchContractEvent({

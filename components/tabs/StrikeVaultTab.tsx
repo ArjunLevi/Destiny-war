@@ -5,9 +5,9 @@ import {
   useAccount,
   useReadContract,
   useWaitForTransactionReceipt,
-  useWriteContract,
   useWatchContractEvent,
 } from "wagmi";
+import { useWriteContractWithBuilder } from "@/lib/useWriteContractWithBuilder";
 import {
   Wallet,
   ConnectWallet,
@@ -66,7 +66,7 @@ export function StrikeVaultTab() {
   const canCheck = Boolean(canCheckIn);
   const rewardNext = Number(nextReward ?? 20n);
 
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { writeContract, data: hash, isPending, error } = useWriteContractWithBuilder();
   const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({
     hash,
   });

@@ -5,8 +5,8 @@ import {
   useAccount,
   useReadContract,
   useWaitForTransactionReceipt,
-  useWriteContract,
 } from "wagmi";
+import { useWriteContractWithBuilder } from "@/lib/useWriteContractWithBuilder";
 import {
   Wallet,
   ConnectWallet,
@@ -43,7 +43,7 @@ export function Leaderboard({
     data: hash,
     isPending,
     error,
-  } = useWriteContract();
+  } = useWriteContractWithBuilder();
   const { isLoading: confirming, isSuccess: confirmed } =
     useWaitForTransactionReceipt({ hash });
 
