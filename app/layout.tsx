@@ -8,6 +8,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: minikitConfig.miniapp.name,
     description: minikitConfig.miniapp.description,
+    icons: {
+      icon: "/art/logo.png",
+      apple: "/art/logo.png",
+    },
     other: {
       // Base Developer Portal verification — https://dashboard.base.org
       "base:app_id": "6a44edbf2876ee6c1138a47c",

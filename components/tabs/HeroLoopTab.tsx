@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   useAccount,
   useReadContract,
@@ -8,24 +8,22 @@ import {
   useWatchContractEvent,
 } from "wagmi";
 import { useWriteContractWithBuilder } from "@/lib/useWriteContractWithBuilder";
-import {
-  Wallet,
-  ConnectWallet,
-} from "@coinbase/onchainkit/wallet";
+import { Wallet, ConnectWallet } from "@coinbase/onchainkit/wallet";
 import {
   DESTINY_HUB_ADDRESS,
   hubAbi,
   hubConfigured,
-  SPIN_OUTCOMES,
   spinOutcomeLabel,
   DAILY_ENERGY,
   DAYS_TO_MAX_HERO,
   SPIN_COST,
   STAT_MAX,
 } from "@/lib/contracts";
+import { STREAK7_ENERGY } from "@/lib/gameConstants";
 import { HEROES } from "@/lib/heroes";
 import { statIndex, type StatType } from "@/lib/gameConstants";
 import { ScrollBadge } from "@/components/ScrollBadge";
+import { ScrollWheel } from "@/components/ScrollWheel";
 
 type PlayerData = {
   energy: bigint;
@@ -40,7 +38,10 @@ function StatBar({ label, value }: { label: string; value: number }) {
     <div className="stat-bar-row">
       <span className="stat-bar-label">{label}</span>
       <div className="stat-bar-track">
-        <div className="stat-bar-fill" style={{ width: `${value}%` }} />
+        <div
+          className="stat-bar-fill"
+          style={{ width: `${value}%` }}
+        />
       </div>
       <span className="stat-bar-val">{value}%</span>
     </div>
@@ -84,6 +85,7 @@ function HeroUpgradeCard({
   };
   const meta = HEROES.find((x) => x.id === h.classId) ?? HEROES[0];
   const busy = isPending || confirming;
+  const avgStat = Math.round((h.power + h.strength + h.speed) / 3);
 
   const upgrade = (stat: StatType) => {
     if (!address || energy < 1) return;
@@ -95,33 +97,37 @@ function HeroUpgradeCard({
     });
   };
 
-  const stats: { key: StatType; val: number }[] = [
-    { key: "power", val: h.power },
-    { key: "strength", val: h.strength },
-    { key: "speed", val: h.speed },
+  const stats: { key: StatType; val: number; label: string }[] = [
+    { key: "power", val: h.power, label: "Power" },
+    { key: "strength", val: h.strength, label: "Strength" },
+    { key: "speed", val: h.speed, label: "Speed" },
   ];
 
   return (
     <div className="hero-upgrade-card">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={meta.portrait} alt={meta.name} className="hero-upgrade-portrait" />
+      <div className="hero-upgrade-art">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={meta.portrait} alt={meta.name} className="hero-upgrade-portrait" />
+        <span className="hero-upgrade-lvl">{avgStat}%</span>
+      </div>
       <div className="hero-upgrade-body">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={meta.title} alt={meta.name} className="hero-upgrade-title" />
-        <p className="muted hero-token-id">NFT #{tokenId.toString()}</p>
-        <StatBar label="Power" value={h.power} />
-        <StatBar label="Strength" value={h.strength} />
-        <StatBar label="Speed" value={h.speed} />
+        <p className="hero-token-id">Champion #{tokenId.toString()}</p>
+        {stats.map(({ key, val, label }) => (
+          <StatBar key={key} label={label} value={val} />
+        ))}
         <div className="upgrade-btns">
-          {stats.map(({ key, val }) => (
+          {stats.map(({ key, val, label }) => (
             <button
               key={key}
               type="button"
               className="btn secondary upgrade-stat-btn"
               disabled={busy || val >= STAT_MAX || energy < 1}
               onClick={() => upgrade(key)}
+              title={`Upgrade ${label}`}
             >
-              +{key[0].toUpperCase()}
+              +{label[0]}
             </button>
           ))}
         </div>
@@ -130,9 +136,66 @@ function HeroUpgradeCard({
   );
 }
 
+function DailyCheckInBoard({
+  streak,
+  canCheckIn,
+  nextReward,
+  busy,
+  onCheckIn,
+}: {
+  streak: number;
+  canCheckIn: boolean;
+  nextReward: number;
+  busy: boolean;
+  onCheckIn: () => void;
+}) {
+  const nextDay = canCheckIn ? streak + 1 : streak;
+
+  return (
+    <section className="quest-panel quest-checkin">
+      <div className="quest-panel-head">
+        <h2>Daily Check-in</h2>
+        <span className="quest-panel-badge">{streak}/7 streak</span>
+      </div>
+      <p className="quest-panel-sub">
+        Next reward: <strong>+{nextReward}</strong> scrolls
+      </p>
+
+      <div className="quest-day-row">
+        {Array.from({ length: 7 }, (_, i) => {
+          const day = i + 1;
+          const reward = day === 7 ? STREAK7_ENERGY : DAILY_ENERGY;
+          const done = streak >= day;
+          const isNext = canCheckIn && day === nextDay;
+          return (
+            <div
+              key={day}
+              className={`quest-day-pill ${done ? "done" : ""} ${isNext ? "next" : ""}`}
+            >
+              <span className="quest-day-num">D{day}</span>
+              <span className="quest-day-reward">+{reward}</span>
+              {done && <span className="quest-day-check">✓</span>}
+            </div>
+          );
+        })}
+      </div>
+
+      <button
+        type="button"
+        className={`btn gold quest-checkin-btn ${canCheckIn ? "pulse" : ""}`}
+        disabled={busy || !canCheckIn}
+        onClick={onCheckIn}
+      >
+        {canCheckIn ? "Claim Daily Scrolls" : "Checked in today ✓"}
+      </button>
+    </section>
+  );
+}
+
 export function HeroLoopTab() {
   const { address, isConnected } = useAccount();
   const [spinResult, setSpinResult] = useState<number | null>(null);
+  const [isSpinning, setIsSpinning] = useState(false);
 
   const { data: player, refetch: refetchPlayer } = useReadContract({
     address: DESTINY_HUB_ADDRESS as `0x${string}`,
@@ -176,11 +239,11 @@ export function HeroLoopTab() {
     eventName: "Spun",
     onLogs(logs) {
       const log = logs.find(
-        (l) =>
-          l.args.player?.toLowerCase() === address?.toLowerCase()
+        (l) => l.args.player?.toLowerCase() === address?.toLowerCase(),
       );
       if (log?.args.outcome !== undefined) {
         setSpinResult(Number(log.args.outcome));
+        setIsSpinning(false);
       }
     },
   });
@@ -214,6 +277,7 @@ export function HeroLoopTab() {
 
   const spin = () => {
     setSpinResult(null);
+    setIsSpinning(true);
     writeContract({
       address: DESTINY_HUB_ADDRESS as `0x${string}`,
       abi: hubAbi,
@@ -225,12 +289,14 @@ export function HeroLoopTab() {
     if (txHash && !confirming) refetchAll();
   }, [txHash, confirming]);
 
-  const wheelSegments = useMemo(() => SPIN_OUTCOMES, []);
+  useEffect(() => {
+    if (txError) setIsSpinning(false);
+  }, [txError]);
 
   if (!hubConfigured) {
     return (
       <div className="screen loop-tab">
-        <h1>Hero Loop</h1>
+        <h1>Quest</h1>
         <p className="note">
           Deploy <code>DestinyWarHub.sol</code> and set{" "}
           <code>NEXT_PUBLIC_DESTINY_HUB_ADDRESS</code> in <code>.env.local</code>.
@@ -240,80 +306,84 @@ export function HeroLoopTab() {
   }
 
   return (
-    <div className="screen loop-tab">
-      <h1>Hero Loop</h1>
-      <p className="muted loop-intro">
-        Check in daily for <strong>{DAILY_ENERGY} scrolls</strong>. Spend{" "}
-        <strong>1 scroll</strong> per stat point — max one hero in{" "}
-        <strong>{DAYS_TO_MAX_HERO} days</strong> (270 total). The wheel costs{" "}
-        <strong>{SPIN_COST} scrolls</strong>.
-      </p>
+    <div className="screen loop-tab quest-tab">
+      <header className="quest-header">
+        <h1>Quest</h1>
+        <p className="quest-tagline">
+          Daily scrolls · wheel fortune · hero upgrades
+        </p>
+      </header>
 
       {!isConnected ? (
-        <Wallet>
-          <ConnectWallet className="btn" disconnectedLabel="Connect to play" />
-        </Wallet>
+        <div className="quest-connect card-panel">
+          <p className="muted">Connect to check in, spin, and upgrade champions.</p>
+          <Wallet>
+            <ConnectWallet className="btn gold" disconnectedLabel="Connect to play" />
+          </Wallet>
+        </div>
       ) : (
         <>
-          <div className="loop-stats card-panel">
-            <div className="loop-stat loop-stat-scrolls">
-              <ScrollBadge amount={energy} large />
-            </div>
-            <div className="loop-stat">
-              <span className="loop-stat-val">{streak}/7</span>
-              <span className="loop-stat-lbl">Streak</span>
-            </div>
-            <div className="loop-stat">
-              <span className="loop-stat-val">{ids.length}</span>
-              <span className="loop-stat-lbl">Heroes</span>
+          <div className="quest-dashboard card-panel">
+            <ScrollBadge amount={energy} large />
+            <div className="quest-dash-stats">
+              <div className="quest-dash-stat">
+                <span className="quest-dash-val">{streak}</span>
+                <span className="quest-dash-lbl">Day streak</span>
+              </div>
+              <div className="quest-dash-stat">
+                <span className="quest-dash-val">{ids.length}</span>
+                <span className="quest-dash-lbl">Heroes</span>
+              </div>
+              <div className="quest-dash-stat">
+                <span className="quest-dash-val">{Number(p?.totalSpins ?? 0n)}</span>
+                <span className="quest-dash-lbl">Spins</span>
+              </div>
             </div>
           </div>
 
-          <section className="loop-section card-panel">
-            <h2>Daily Check-in</h2>
-            <p className="muted">
-              Next reward: <strong>+{Number(nextReward ?? DAILY_ENERGY)}</strong> scrolls
-            </p>
-            <button
-              type="button"
-              className="btn gold"
-              disabled={busy || !canCheckIn}
-              onClick={checkIn}
-            >
-              {canCheckIn ? "Check In (1 tx)" : "Already checked in today"}
-            </button>
-          </section>
+          <DailyCheckInBoard
+            streak={streak}
+            canCheckIn={Boolean(canCheckIn)}
+            nextReward={Number(nextReward ?? DAILY_ENERGY)}
+            busy={busy}
+            onCheckIn={checkIn}
+          />
 
-          <section className="loop-section card-panel">
-            <h2>Scroll Wheel</h2>
-            <p className="muted">Costs {SPIN_COST} scrolls · best odds on +30</p>
-            <div className="spin-wheel-preview">
-              {wheelSegments.map((s) => (
-                <span key={s.id} className="spin-seg">
-                  {s.icon} {s.reward}
-                </span>
-              ))}
+          <section className="quest-panel quest-wheel-panel">
+            <div className="quest-panel-head">
+              <h2>Scroll Wheel</h2>
+              <span className="quest-panel-badge">{SPIN_COST} scrolls</span>
             </div>
+            <p className="quest-panel-sub">Spin for bonus scrolls — best odds on +30</p>
+
+            <ScrollWheel spinning={isSpinning} winnerId={spinResult} />
+
             <button
               type="button"
-              className="btn"
-              disabled={busy || energy < SPIN_COST}
+              className="btn gold quest-spin-btn"
+              disabled={busy || energy < SPIN_COST || isSpinning}
               onClick={spin}
             >
-              Spin ({SPIN_COST} scrolls)
+              {isSpinning ? "Spinning…" : `Spin Wheel (${SPIN_COST} scrolls)`}
             </button>
-            {spinResult !== null && (
-              <p className="spin-result">
-                Result: {spinOutcomeLabel(spinResult)}
+
+            {spinResult !== null && !isSpinning && (
+              <p className="quest-spin-result">
+                You won: {spinOutcomeLabel(spinResult)}
               </p>
             )}
           </section>
 
-          <section className="loop-section">
-            <h2>Upgrade Heroes</h2>
-            <p className="muted">Each +1 stat = 1 scroll · starts at 10% · max 100%</p>
+          <section className="quest-panel quest-upgrade-panel">
+            <div className="quest-panel-head">
+              <h2>Upgrade Heroes</h2>
+              <span className="quest-panel-badge">1 scroll / +1%</span>
+            </div>
+            <p className="quest-panel-sub">
+              Max one hero in <strong>{DAYS_TO_MAX_HERO} days</strong> · stats start at 10% · cap 100%
+            </p>
             {ids.length === 0 ? (
-              <p className="note">Mint heroes on the Home tab first.</p>
+              <p className="quest-empty-note">Mint champions on Realm first.</p>
             ) : (
               <div className="hero-upgrade-list">
                 {ids.map((id) => (

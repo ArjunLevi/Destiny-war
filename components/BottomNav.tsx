@@ -3,17 +3,17 @@
 export type TabId =
   | "home"
   | "loop"
+  | "battle"
   | "rank"
   | "airdrop"
-  | "market"
   | "profile";
 
 const TABS: { id: TabId; label: string; icon: string }[] = [
   { id: "home", label: "Realm", icon: "/art/logo.png" },
   { id: "loop", label: "Quest", icon: "/art/scrolls/weapon.png" },
+  { id: "battle", label: "Arena", icon: "/art/logo2.png" },
   { id: "rank", label: "Throne", icon: "/art/logo7.png" },
   { id: "airdrop", label: "Treasury", icon: "/art/logo3.png" },
-  { id: "market", label: "Bazaar", icon: "/art/logo2.png" },
   { id: "profile", label: "Hero", icon: "/art/logo5.png" },
 ];
 

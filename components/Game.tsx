@@ -4,6 +4,7 @@ import { useEffect, useReducer, useState } from "react";
 import { useComposeCast } from "@coinbase/onchainkit/minikit";
 import { HEROES, Hero } from "@/lib/heroes";
 import { Leaderboard } from "@/components/Leaderboard";
+import { BattleField, type CombatFx } from "@/components/BattleField";
 
 const MAX_ENERGY = 100;
 const START_ENERGY = 50;
@@ -53,6 +54,7 @@ type State = {
   log: string[];
   hitTarget: "player" | "enemy" | null;
   hitKey: number;
+  combatFx: CombatFx | null;
   playerStunned: boolean;
   upgrades: Upgrade[] | null;
 };
@@ -241,6 +243,7 @@ const initialState: State = {
   log: [],
   hitTarget: null,
   hitKey: 0,
+  combatFx: null,
   playerStunned: false,
   upgrades: null,
 };
@@ -342,16 +345,23 @@ function reducer(state: State, action: Action): State {
         if (player.lifesteal > 0) heal(r(dmg * player.lifesteal));
       };
 
+      let fxKind: CombatFx["kind"] = "player-attack";
+      let fxDmg: number | undefined;
+      let fxCrit: boolean | undefined;
+
       if (action.kind === "attack") {
         const { dmg, crit } = computeHit(player, enemy, 1);
         enemy = applyHit(enemy, dmg);
         lifesteal(dmg);
         gain(25);
+        fxDmg = dmg;
+        fxCrit = crit;
         log = pushLog(
           log,
           `${player.hero.name} strikes for ${dmg}${crit ? " (CRIT!)" : ""}.`
         );
       } else if (action.kind === "defend") {
+        fxKind = "player-defend";
         player = {
           ...player,
           st: { ...player.st, shield: player.st.shield + r(player.maxHp * 0.2) },
@@ -360,6 +370,7 @@ function reducer(state: State, action: Action): State {
         gain(20);
         log = pushLog(log, `${player.hero.name} guards and gains a shield.`);
       } else {
+        fxKind = "player-skill";
         // skill
         if (player.energy < MAX_ENERGY) return state;
         player = { ...player, energy: 0 };
@@ -375,6 +386,8 @@ function reducer(state: State, action: Action): State {
             }
             enemy = applyHit(enemy, total);
             lifesteal(total);
+            fxDmg = total;
+            fxCrit = crits > 0;
             log = pushLog(log, `${name}! 3 hits for ${total}${crits ? ` (${crits} crit)` : ""}.`);
             break;
           }
@@ -383,6 +396,8 @@ function reducer(state: State, action: Action): State {
             enemy = applyHit(enemy, h.dmg);
             enemy = { ...enemy, st: { ...enemy.st, burn: 3 } };
             lifesteal(h.dmg);
+            fxDmg = h.dmg;
+            fxCrit = h.crit;
             log = pushLog(log, `${name} blasts ${h.dmg} and ignites a Burn!`);
             break;
           }
@@ -391,6 +406,8 @@ function reducer(state: State, action: Action): State {
             enemy = applyHit(enemy, h.dmg);
             enemy = { ...enemy, st: { ...enemy.st, poison: 3 } };
             lifesteal(h.dmg);
+            fxDmg = h.dmg;
+            fxCrit = true;
             log = pushLog(log, `${name} crits ${h.dmg} and applies Poison!`);
             break;
           }
@@ -414,6 +431,8 @@ function reducer(state: State, action: Action): State {
             const stun = Math.random() < 0.3 ? 1 : 0;
             enemy = { ...enemy, st: { ...enemy.st, weaken: 3, stun: Math.max(enemy.st.stun, stun) } };
             lifesteal(h.dmg);
+            fxDmg = h.dmg;
+            fxCrit = h.crit;
             log = pushLog(
               log,
               `${name} hits ${h.dmg}, Weakens${stun ? " & Stuns" : ""} the foe!`
@@ -433,12 +452,17 @@ function reducer(state: State, action: Action): State {
             const h = computeHit(player, enemy, 2);
             enemy = applyHit(enemy, h.dmg);
             lifesteal(h.dmg);
+            fxDmg = h.dmg;
+            fxCrit = h.crit;
             log = pushLog(log, `${name} smashes for ${h.dmg}${h.crit ? " (CRIT!)" : ""}.`);
           }
         }
       }
 
-      const damagedEnemy = action.kind === "attack" || action.kind === "skill";
+      const damagedEnemy =
+        action.kind === "attack" ||
+        (action.kind === "skill" && fxDmg !== undefined);
+      const nextHitKey = damagedEnemy ? state.hitKey + 1 : state.hitKey;
 
       if (enemy.hp <= 0) {
         return toUpgrade(state, player, enemy, log);
@@ -451,7 +475,13 @@ function reducer(state: State, action: Action): State {
         turn: "enemy",
         log,
         hitTarget: damagedEnemy ? "enemy" : null,
-        hitKey: damagedEnemy ? state.hitKey + 1 : state.hitKey,
+        hitKey: nextHitKey,
+        combatFx: {
+          kind: fxKind,
+          key: nextHitKey,
+          damage: fxDmg,
+          crit: fxCrit,
+        },
       };
     }
 
@@ -477,6 +507,9 @@ function reducer(state: State, action: Action): State {
 
       const lowHp = enemy.hp / enemy.maxHp < 0.3;
       let didDamage = true;
+      let fxKind: CombatFx["kind"] = "enemy-attack";
+      let fxDmg: number | undefined;
+      let fxCrit: boolean | undefined;
 
       if (lowHp && Math.random() < 0.25) {
         enemy = {
@@ -488,6 +521,7 @@ function reducer(state: State, action: Action): State {
         log = pushLog(log, `${enemy.hero.name} defends.`);
         didDamage = false;
       } else if (enemy.energy >= MAX_ENERGY && Math.random() < 0.5) {
+        fxKind = "enemy-skill";
         enemy = { ...enemy, energy: 0 };
         if (enemy.hero.name === "Priest") {
           enemy = {
@@ -510,6 +544,8 @@ function reducer(state: State, action: Action): State {
             forceCrit: enemy.hero.name === "Ninja",
           });
           player = applyHit(player, h.dmg);
+          fxDmg = h.dmg;
+          fxCrit = h.crit;
           log = pushLog(
             log,
             `${enemy.hero.name} unleashes ${enemy.hero.skill.name} for ${h.dmg}${h.crit ? " (CRIT!)" : ""}!`
@@ -523,6 +559,8 @@ function reducer(state: State, action: Action): State {
       } else {
         const h = computeHit(player, enemy, 1);
         player = applyHit(player, h.dmg);
+        fxDmg = h.dmg;
+        fxCrit = h.crit;
         enemy = { ...enemy, energy: Math.min(MAX_ENERGY, enemy.energy + 25) };
         log = pushLog(
           log,
@@ -551,8 +589,16 @@ function reducer(state: State, action: Action): State {
         };
       }
 
+      const nextHitKey = didDamage ? state.hitKey + 1 : state.hitKey;
       return handToPlayer(
-        { ...state, hitTarget: didDamage ? "player" : null, hitKey: didDamage ? state.hitKey + 1 : state.hitKey },
+        {
+          ...state,
+          hitTarget: didDamage ? "player" : null,
+          hitKey: nextHitKey,
+          combatFx: didDamage
+            ? { kind: fxKind, key: nextHitKey, damage: fxDmg, crit: fxCrit }
+            : null,
+        },
         player,
         enemy,
         log
@@ -588,6 +634,7 @@ function reducer(state: State, action: Action): State {
         upgrades: null,
         hitTarget: null,
         hitKey: state.hitKey + 1,
+        combatFx: null,
       };
       if (playerFirst) return handToPlayer(base, player, enemy, log);
       return { ...base, player, enemy, turn: "enemy", playerStunned: false, log };
@@ -637,8 +684,17 @@ function Bars({ c }: { c: Combatant }) {
   );
 }
 
-export function Game({ embedded = false }: { embedded?: boolean }) {
-  const [state, dispatch] = useReducer(reducer, initialState);
+export function Game({
+  embedded = false,
+  startScreen = "menu",
+}: {
+  embedded?: boolean;
+  startScreen?: "menu" | "select";
+}) {
+  const [state, dispatch] = useReducer(reducer, {
+    ...initialState,
+    screen: startScreen === "select" ? "select" : "menu",
+  });
   const { composeCast } = useComposeCast();
   const [best, setBest] = useState(0);
 
@@ -753,7 +809,7 @@ export function Game({ embedded = false }: { embedded?: boolean }) {
 
   // ---------- BATTLE / OVER ----------
   return (
-    <div className="screen battle">
+    <div className={`screen battle ${embedded ? "embedded" : ""}`}>
       <div className="wavebar">
         <span>
           Wave {state.wave}
@@ -764,27 +820,20 @@ export function Game({ embedded = false }: { embedded?: boolean }) {
         <span className="muted">Best {Math.max(best, state.wave)}</span>
       </div>
 
-      <div
-        className="arena"
-        style={{
-          backgroundImage: `linear-gradient(rgba(7,39,29,0.35),rgba(7,39,29,0.6)), url(/art/class${Math.min(enemy.hero.id, 7)}.png)`,
-        }}
-      >
-        <div className={`side ${state.hitTarget === "player" ? "hit" : ""}`} key={`p${state.hitKey}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={player.hero.portrait} alt={player.hero.name} className="fighter you" />
-          <Bars c={player} />
-        </div>
-        <div className="vs">VS</div>
-        <div className={`side ${state.hitTarget === "enemy" ? "hit" : ""}`} key={`e${state.hitKey}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={enemy.hero.portrait}
-            alt={enemy.hero.name}
-            className={`fighter foe ${enemy.isBoss ? "boss" : ""}`}
-          />
-          <Bars c={enemy} />
-        </div>
+      <BattleField
+        player={player}
+        enemy={enemy}
+        wave={state.wave}
+        isBoss={enemy.isBoss}
+        combatFx={state.combatFx}
+        hitTarget={state.hitTarget}
+        hitKey={state.hitKey}
+        skillReady={skillReady}
+      />
+
+      <div className="bf-stats-row">
+        <Bars c={player} />
+        <Bars c={enemy} />
       </div>
 
       <div className="log">

@@ -55,7 +55,7 @@ export const KINGDOMS: Kingdom[] = [
     banner: "/art/kingdom4.png",
     title: "/art/title4.png",
     lore:
-      "Hidden among misty archipelagos, the Shadow Veil clan moves unseen. They poison supply lines, steal war maps, and vanish before dawn. Many kings fear a blade they cannot see.",
+      "Ninjas are a mysterious order hidden in misty archipelagos for centuries. They served ancient dynasties by striking from shadow — hidden blades and clever poisons felled knights who never saw the blow coming. Kings still fear a blade they cannot see.",
     top: "40%",
     left: "70%",
   },
