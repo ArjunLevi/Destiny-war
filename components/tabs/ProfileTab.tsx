@@ -4,10 +4,7 @@ import { useMemo } from "react";
 import { useAccount, useBalance, useDisconnect, useReadContract } from "wagmi";
 import { base } from "wagmi/chains";
 import { formatEther } from "viem";
-import {
-  Wallet,
-  ConnectWallet,
-} from "@coinbase/onchainkit/wallet";
+import { DestinyWallet } from "@/components/DestinyWallet";
 import { useAvatar } from "@coinbase/onchainkit/identity";
 import { HEROES } from "@/lib/heroes";
 import {
@@ -115,9 +112,7 @@ export function ProfileTab() {
           <p className="muted profile-empty-text">
             Connect your wallet to view stats, scrolls, and hero NFTs.
           </p>
-          <Wallet>
-            <ConnectWallet className="btn gold" disconnectedLabel="Connect Wallet" />
-          </Wallet>
+          <DestinyWallet variant="cta" disconnectedLabel="Connect Wallet" />
         </div>
       </div>
     );

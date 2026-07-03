@@ -8,7 +8,8 @@ import {
   useWaitForTransactionReceipt,
 } from "wagmi";
 import { useWriteContractWithBuilder } from "@/lib/useWriteContractWithBuilder";
-import { Wallet, ConnectWallet } from "@coinbase/onchainkit/wallet";
+import { DestinyWallet } from "@/components/DestinyWallet";
+import { TxWalletHint } from "@/components/TxWalletHint";
 import { HEROES } from "@/lib/heroes";
 import {
   USDC_ADDRESS,
@@ -138,21 +139,28 @@ export function MintCard({
           Deploy contract
         </button>
       ) : !isConnected ? (
-        <Wallet>
-          <ConnectWallet className="btn gold mint-btn" disconnectedLabel="Connect to Mint" />
-        </Wallet>
+        <>
+          <DestinyWallet variant="cta" disconnectedLabel="Connect to Mint" />
+          <TxWalletHint action="mintHero" />
+        </>
       ) : needsApproval ? (
-        <button className="btn gold mint-btn" onClick={approve} disabled={busy || !hasEnoughUsdc}>
-          {approvePending || approveConfirming ? "Approving…" : "1. Approve USDC"}
-        </button>
+        <>
+          <button className="btn gold mint-btn" onClick={approve} disabled={busy || !hasEnoughUsdc}>
+            {approvePending || approveConfirming ? "Approving…" : "1. Approve USDC"}
+          </button>
+          <TxWalletHint action="approveUsdc" />
+        </>
       ) : (
-        <button className="btn gold mint-btn" onClick={mint} disabled={busy || !hasEnoughUsdc}>
-          {mintPending || mintConfirming
-            ? "Minting…"
-            : mintDone
-              ? "Champion Minted ✓"
-              : "Mint Champion NFT"}
-        </button>
+        <>
+          <button className="btn gold mint-btn" onClick={mint} disabled={busy || !hasEnoughUsdc}>
+            {mintPending || mintConfirming
+              ? "Minting…"
+              : mintDone
+                ? "Champion Minted ✓"
+                : `Mint ${qty} ${hero.name}${qty > 1 ? "s" : ""}`}
+          </button>
+          {!mintDone && !busy && <TxWalletHint action="mintHero" />}
+        </>
       )}
       {!hasEnoughUsdc && isConnected && hubConfigured && (
         <p className="mint-warn">Need {(MINT_PRICE_USDC * qty).toFixed(2)} USDC on Base</p>

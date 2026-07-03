@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate:store": "node scripts/generate-store-assets.mjs"
   },
   "dependencies": {
     "@coinbase/onchainkit": "^1.1.2",

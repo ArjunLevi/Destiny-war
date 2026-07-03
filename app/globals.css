@@ -607,6 +607,178 @@ h3 {
   letter-spacing: 0.3px;
 }
 
+/* ---------- bg3 cinematic banners (1920×720 panoramic crop) ---------- */
+.cinematic-banner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 204, 77, 0.28);
+  background-color: #141008;
+  background-image: url("/art/bg3-banner.jpg");
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: 12% center;
+}
+.cinematic-banner-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 14, 6, 0.25) 0%,
+    rgba(8, 14, 6, 0.55) 55%,
+    rgba(6, 10, 8, 0.88) 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+.cinematic-banner > *:not(.cinematic-banner-shade) {
+  position: relative;
+  z-index: 1;
+}
+.cinematic-banner--arena {
+  text-align: center;
+  padding: 22px 12px 18px;
+  min-height: 148px;
+}
+.cinematic-banner--throne {
+  text-align: center;
+  padding: 18px 12px 16px;
+  min-height: 132px;
+  margin-bottom: 2px;
+}
+.cinematic-banner--profile {
+  display: none;
+}
+
+/* ---------- DestinyWar wallet (OnchainKit overrides) ---------- */
+.destiny-wallet {
+  display: inline-flex;
+}
+.destiny-wallet-btn,
+.destiny-wallet-btn[data-testid="ockConnectWallet"],
+button.destiny-wallet-btn {
+  all: unset;
+  box-sizing: border-box;
+  cursor: pointer;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  font-family: var(--display) !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.6px !important;
+  text-transform: uppercase !important;
+  color: #2a1f00 !important;
+  background: linear-gradient(180deg, #ffe08a 0%, #d4af37 45%, #b8922a 100%) !important;
+  border: 2px solid rgba(255, 230, 140, 0.65) !important;
+  border-radius: 14px !important;
+  padding: 10px 18px !important;
+  min-height: 44px !important;
+  box-shadow:
+    0 2px 0 #7a5c10,
+    0 6px 18px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35) !important;
+  transition: filter 0.15s ease, transform 0.1s ease !important;
+  white-space: nowrap !important;
+}
+.destiny-wallet-btn::before {
+  content: "⛓";
+  font-size: 15px;
+  opacity: 0.85;
+}
+.destiny-wallet-btn:hover {
+  filter: brightness(1.08) !important;
+  transform: translateY(-1px) !important;
+}
+.destiny-wallet-btn:active {
+  transform: translateY(1px) !important;
+  box-shadow:
+    0 1px 0 #7a5c10,
+    0 3px 10px rgba(0, 0, 0, 0.4) !important;
+}
+.destiny-wallet-btn--topbar {
+  font-size: 12px !important;
+  padding: 9px 14px !important;
+  min-height: 40px !important;
+  max-width: 168px;
+  border-radius: 12px !important;
+}
+.destiny-wallet-btn--topbar::before {
+  content: "⚔";
+  font-size: 13px;
+}
+.destiny-wallet-btn--cta {
+  width: 100%;
+  max-width: 320px;
+  font-size: 15px !important;
+  padding: 13px 20px !important;
+}
+.destiny-wallet--cta {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+.destiny-wallet-dropdown {
+  background: rgba(8, 22, 16, 0.98) !important;
+  border: 1px solid rgba(255, 204, 77, 0.35) !important;
+  border-radius: 14px !important;
+  padding: 8px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55) !important;
+}
+.destiny-wallet-identity {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+  padding: 8px !important;
+  border-radius: 10px !important;
+}
+.destiny-wallet-avatar {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  border: 2px solid var(--gold) !important;
+}
+.destiny-wallet-id-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.destiny-wallet-name {
+  font-family: var(--display) !important;
+  color: var(--gold) !important;
+  font-size: 14px !important;
+}
+.destiny-wallet-address {
+  font-size: 11px !important;
+  color: var(--muted) !important;
+}
+.destiny-wallet-disconnect {
+  font-family: var(--display) !important;
+  color: #ff8a8a !important;
+  font-size: 13px !important;
+  padding: 10px !important;
+  border-radius: 10px !important;
+  text-align: center !important;
+}
+.tx-wallet-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  text-align: center;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.tx-wallet-hint strong {
+  color: var(--gold);
+  font-weight: 600;
+}
+.tx-wallet-link {
+  color: #7ad7ff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* ---------- Home / Mint ---------- */
 .home-tab {
   gap: 12px;
@@ -1453,18 +1625,19 @@ h3 {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
 }
 .profile-hero-banner {
-  height: 72px;
+  height: 76px;
   background:
-    linear-gradient(135deg, rgba(255, 204, 77, 0.22), rgba(47, 143, 91, 0.35)),
+    linear-gradient(135deg, rgba(255, 204, 77, 0.18), rgba(47, 143, 91, 0.42)),
+    linear-gradient(180deg, rgba(4, 16, 12, 0.12) 0%, rgba(4, 16, 12, 0.5) 100%),
     url("/art/menubg.png") center / cover;
-  border-bottom: 1px solid rgba(255, 204, 77, 0.2);
+  border-bottom: 1px solid rgba(255, 204, 77, 0.22);
 }
 .profile-hero-main {
   display: flex;
   gap: 14px;
   align-items: flex-start;
   padding: 0 16px 14px;
-  margin-top: -36px;
+  margin-top: -34px;
 }
 .profile-avatar-ring {
   flex-shrink: 0;
@@ -1495,21 +1668,22 @@ h3 {
 .profile-hero-meta {
   flex: 1;
   min-width: 0;
-  padding-top: 40px;
+  padding-top: 36px;
+}
+.profile-display-name {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 22px;
+  color: var(--gold);
+  line-height: 1.1;
+  word-break: break-word;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
 }
 .profile-name-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
-}
-.profile-display-name {
-  margin: 0;
-  font-family: var(--display);
-  font-size: 26px;
-  color: var(--gold);
-  line-height: 1.05;
-  word-break: break-word;
+  gap: 6px;
 }
 .profile-base-badge {
   font-size: 9px;
@@ -1999,31 +2173,10 @@ h3 {
   padding-bottom: 20px;
 }
 .arena-hero-banner {
-  position: relative;
-  text-align: center;
-  padding: 20px 12px 16px;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid rgba(255, 204, 77, 0.25);
-  background: linear-gradient(180deg, rgba(20, 48, 36, 0.9), rgba(8, 20, 14, 0.85));
+  /* extends .cinematic-banner--arena */
 }
 .arena-hero-glow {
-  position: absolute;
-  inset: -40%;
-  background: radial-gradient(circle at 50% 30%, rgba(255, 120, 40, 0.18), transparent 55%);
-  animation: arena-glow-pulse 4s ease-in-out infinite;
-  pointer-events: none;
-}
-@keyframes arena-glow-pulse {
-  0%,
-  100% {
-    opacity: 0.6;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.05);
-  }
+  display: none;
 }
 .arena-hero-logo {
   width: 56px;
@@ -3191,7 +3344,315 @@ h3 {
   border: 2px solid #0f2018;
 }
 
-/* ---------- Rank / Leaderboard ---------- */
+/* ---------- Throne / Weekly Leaderboard ---------- */
+.throne-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding-bottom: 24px;
+}
+.throne-header {
+  /* extends .cinematic-banner--throne */
+  padding: 18px 12px 16px;
+}
+.throne-crown {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 14px rgba(255, 204, 77, 0.55));
+  margin-bottom: 4px;
+}
+.throne-header h1 {
+  margin: 0;
+  font-size: 30px;
+  color: var(--gold);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.85);
+  letter-spacing: 1px;
+}
+.throne-sub {
+  margin: 6px 0 10px;
+  font-size: 13px;
+  color: rgba(220, 230, 220, 0.9);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.8);
+}
+.throne-season-pill {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: var(--muted);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 204, 77, 0.35);
+}
+.throne-season-pill strong {
+  color: var(--gold);
+}
+.throne-connect {
+  text-align: center;
+  padding: 20px 16px;
+}
+.throne-note {
+  text-align: center;
+}
+.throne-my-rank {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 2px 0;
+}
+.throne-my-rank-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: linear-gradient(90deg, rgba(212, 175, 55, 0.22), rgba(8, 20, 14, 0.85));
+  border: 2px solid rgba(255, 204, 77, 0.5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+.throne-my-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+.throne-my-place {
+  font-family: var(--display);
+  font-size: 28px;
+  color: var(--gold);
+  line-height: 1;
+}
+.throne-my-score {
+  font-family: var(--display);
+  font-size: 16px;
+  color: var(--gold-light, #ffe08a);
+}
+.throne-section-title {
+  text-align: center;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--gold);
+  margin: 0 0 10px;
+}
+.throne-podium-wrap {
+  padding: 4px 0 8px;
+}
+.throne-podium {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr 1fr;
+  align-items: end;
+  gap: 8px;
+  min-height: 200px;
+}
+.throne-podium-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 6px 12px;
+  border-radius: 14px 14px 8px 8px;
+  background: rgba(0, 0, 0, 0.42);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(4px);
+  position: relative;
+}
+.throne-podium-1 {
+  min-height: 168px;
+  border-color: rgba(255, 204, 77, 0.55);
+  box-shadow: 0 0 24px rgba(255, 204, 77, 0.2);
+  transform: translateY(-8px);
+}
+.throne-podium-2 {
+  min-height: 138px;
+  border-color: rgba(192, 192, 210, 0.45);
+}
+.throne-podium-3 {
+  min-height: 120px;
+  border-color: rgba(205, 127, 50, 0.45);
+}
+.throne-podium-medal {
+  font-size: 22px;
+  line-height: 1;
+}
+.throne-podium-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 204, 77, 0.4);
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.throne-podium-1 .throne-podium-avatar {
+  width: 52px;
+  height: 52px;
+  border-width: 3px;
+  border-color: var(--gold);
+}
+.throne-podium-avatar img {
+  width: 80%;
+  height: 80%;
+  object-fit: contain;
+}
+.throne-podium-score {
+  font-family: var(--display);
+  font-size: 18px;
+  color: var(--gold);
+}
+.throne-podium-1 .throne-podium-score {
+  font-size: 22px;
+}
+.throne-podium-rank {
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+}
+.throne-player {
+  font-size: 11px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+.throne-player-you {
+  color: var(--gold);
+  font-weight: 700;
+}
+.throne-list-wrap {
+  padding: 0 !important;
+  overflow: hidden;
+}
+.throne-list-head {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 8px;
+  padding: 10px 14px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+  border-bottom: 1px solid rgba(255, 204, 77, 0.15);
+  background: rgba(0, 0, 0, 0.25);
+}
+.throne-list-head span:last-child {
+  text-align: right;
+}
+.throne-list {
+  max-height: 340px;
+  overflow-y: auto;
+}
+.throne-row {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  transition: background 0.15s;
+}
+.throne-row:hover {
+  background: rgba(255, 204, 77, 0.06);
+}
+.throne-row-you {
+  background: rgba(255, 204, 77, 0.12);
+  border-left: 3px solid var(--gold);
+}
+.throne-row-rank {
+  font-family: var(--display);
+  font-size: 16px;
+  color: var(--muted);
+}
+.throne-tier-gold .throne-row-rank,
+.throne-tier-gold .throne-podium-score {
+  color: #ffd970;
+}
+.throne-tier-silver .throne-row-rank {
+  color: #c0c0d8;
+}
+.throne-tier-bronze .throne-row-rank {
+  color: #cd7f32;
+}
+.throne-tier-elite .throne-row-rank {
+  color: var(--gold);
+}
+.throne-row-score {
+  font-family: var(--display);
+  font-size: 14px;
+  color: var(--gold);
+  white-space: nowrap;
+}
+.throne-empty,
+.throne-loading {
+  text-align: center;
+  padding: 24px 16px;
+}
+.throne-empty-title {
+  font-family: var(--display);
+  font-size: 18px;
+  color: var(--gold);
+  margin: 0 0 8px;
+}
+.throne-breakdown {
+  padding: 0 !important;
+  overflow: hidden;
+}
+.throne-breakdown-toggle {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background: transparent;
+  border: none;
+  color: var(--gold);
+  font-family: var(--display);
+  font-size: 15px;
+  cursor: pointer;
+}
+.throne-breakdown-body {
+  padding: 0 16px 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+.throne-formula {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 12px 0;
+  line-height: 1.45;
+}
+.throne-breakdown-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.throne-stat-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--muted);
+}
+.throne-stat-chip strong {
+  font-family: var(--display);
+  font-size: 20px;
+  color: var(--gold);
+}
+.throne-eco-note {
+  font-size: 11px;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ---------- Rank / Leaderboard (legacy) ---------- */
 .rank-formula {
   font-size: 12px;
   text-align: center;

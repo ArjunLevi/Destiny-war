@@ -9,8 +9,8 @@ export async function generateMetadata(): Promise<Metadata> {
     title: minikitConfig.miniapp.name,
     description: minikitConfig.miniapp.description,
     icons: {
-      icon: "/art/logo.png",
-      apple: "/art/logo.png",
+      icon: "/store/icon-1024.png",
+      apple: "/store/icon-1024.png",
     },
     other: {
       // Base Developer Portal verification — https://dashboard.base.org

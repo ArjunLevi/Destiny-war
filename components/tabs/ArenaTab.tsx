@@ -58,8 +58,8 @@ export function ArenaTab() {
 
   return (
     <div className="arena-tab">
-      <header className="arena-hero-banner">
-        <div className="arena-hero-glow" aria-hidden />
+      <header className="arena-hero-banner cinematic-banner cinematic-banner--arena">
+        <div className="cinematic-banner-shade" aria-hidden />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/art/logo.png" alt="" className="arena-hero-logo" />
         <h1>Arena</h1>

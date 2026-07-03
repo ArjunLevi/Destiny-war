@@ -10,7 +10,11 @@ export function RootProvider({ children }: { children: ReactNode }) {
       apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
       chain={base}
       config={{
-        appearance: { mode: "auto" },
+        appearance: {
+          mode: "dark",
+          name: "DestinyWar",
+          logo: `${process.env.NEXT_PUBLIC_URL ?? "https://destinywar.app"}/art/logo.png`,
+        },
         wallet: { display: "modal", preference: "all" },
       }}
       miniKit={{

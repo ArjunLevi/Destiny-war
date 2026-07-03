@@ -8,7 +8,7 @@ import {
   useWatchContractEvent,
 } from "wagmi";
 import { useWriteContractWithBuilder } from "@/lib/useWriteContractWithBuilder";
-import { Wallet, ConnectWallet } from "@coinbase/onchainkit/wallet";
+import { DestinyWallet } from "@/components/DestinyWallet";
 import {
   DESTINY_HUB_ADDRESS,
   hubAbi,
@@ -317,9 +317,7 @@ export function HeroLoopTab() {
       {!isConnected ? (
         <div className="quest-connect card-panel">
           <p className="muted">Connect to check in, spin, and upgrade champions.</p>
-          <Wallet>
-            <ConnectWallet className="btn gold" disconnectedLabel="Connect to play" />
-          </Wallet>
+          <DestinyWallet variant="cta" disconnectedLabel="Connect to play" />
         </div>
       ) : (
         <>
