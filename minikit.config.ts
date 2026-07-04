@@ -1,7 +1,6 @@
-const ROOT_URL =
-  process.env.NEXT_PUBLIC_URL ||
-  (process.env.VERCEL_URL && `https://${process.env.VERCEL_URL}`) ||
-  "https://destinywar.app";
+import { APP_ORIGIN } from "@/lib/appUrl";
+
+const ROOT_URL = APP_ORIGIN;
 
 /**
  * Mini App manifest for destinywar.app (Vercel).

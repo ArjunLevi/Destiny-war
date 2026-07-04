@@ -1,16 +1,19 @@
 import type { Metadata } from "next";
 import { minikitConfig } from "@/minikit.config";
 import { RootProvider } from "./rootProvider";
+import { APP_ICON_URL, APP_ORIGIN } from "@/lib/appUrl";
 import "@coinbase/onchainkit/styles.css";
 import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
+    metadataBase: new URL(APP_ORIGIN),
     title: minikitConfig.miniapp.name,
     description: minikitConfig.miniapp.description,
     icons: {
-      icon: "/store/icon-1024.png",
-      apple: "/store/icon-1024.png",
+      icon: APP_ICON_URL,
+      apple: APP_ICON_URL,
+      shortcut: APP_ICON_URL,
     },
     other: {
       // Base Developer Portal verification — https://dashboard.base.org

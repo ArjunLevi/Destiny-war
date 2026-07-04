@@ -2,6 +2,12 @@ import { base, baseSepolia } from "viem/chains";
 
 export const APP_CHAIN_ID = Number(process.env.NEXT_PUBLIC_CHAIN_ID || base.id);
 
+/** True in the browser when a CDP client key is configured. */
+export function clientPaymasterEnabled(): boolean {
+  return Boolean(process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY);
+}
+
+/** Server/build-time check (includes server-only paymaster URL). */
 export const paymasterEnabled = Boolean(
   process.env.CDP_PAYMASTER_URL ||
     process.env.CDP_API_KEY ||

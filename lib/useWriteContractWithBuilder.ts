@@ -7,7 +7,9 @@ import {
   useWaitForCallsStatus,
   useCapabilities,
   useChainId,
+  useAccount,
 } from "wagmi";
+import { useIsInMiniApp } from "@coinbase/onchainkit/minikit";
 import {
   concatHex,
   encodeFunctionData,
@@ -17,7 +19,7 @@ import {
 } from "viem";
 import { base } from "viem/chains";
 import { BUILDER_DATA_SUFFIX } from "@/lib/builderCode";
-import { getClientPaymasterUrl, paymasterEnabled } from "@/lib/paymaster";
+import { clientPaymasterEnabled, getClientPaymasterUrl } from "@/lib/paymaster";
 
 type WriteContractParams = {
   address: Address;
@@ -28,27 +30,47 @@ type WriteContractParams = {
   chainId?: number;
 };
 
-function encodeCallData(params: WriteContractParams): Hex {
-  return concatHex([
-    encodeFunctionData({
-      abi: params.abi as Abi,
-      functionName: params.functionName,
-      args: params.args as readonly unknown[],
-    }),
-    BUILDER_DATA_SUFFIX,
-  ]);
+function encodeCallData(params: WriteContractParams, sponsored: boolean): Hex {
+  const callData = encodeFunctionData({
+    abi: params.abi as Abi,
+    functionName: params.functionName,
+    args: params.args as readonly unknown[],
+  });
+  // Paymaster allowlists match raw function selectors — skip builder suffix when sponsoring.
+  if (sponsored) return callData;
+  return concatHex([callData, BUILDER_DATA_SUFFIX]);
 }
 
-/** Writes hub/ERC20 txs with builder attribution; sponsors gas via CDP Paymaster on Smart Wallets. */
+function useShouldSponsor() {
+  const chainId = useChainId();
+  const targetChainId = chainId || base.id;
+  const { connector } = useAccount();
+  const { isInMiniApp } = useIsInMiniApp();
+  const { data: capabilities } = useCapabilities({ chainId: targetChainId });
+
+  return useMemo(() => {
+    if (!clientPaymasterEnabled()) return false;
+
+    const walletSupportsPaymaster =
+      capabilities?.[targetChainId]?.paymasterService?.supported === true;
+
+    const id = connector?.id?.toLowerCase() ?? "";
+    const name = connector?.name?.toLowerCase() ?? "";
+    const isCoinbaseWallet =
+      id.includes("coinbase") ||
+      id.includes("farcaster") ||
+      name.includes("coinbase") ||
+      name.includes("base");
+
+    return walletSupportsPaymaster || isInMiniApp === true || isCoinbaseWallet;
+  }, [capabilities, targetChainId, connector?.id, connector?.name, isInMiniApp]);
+}
+
+/** Writes hub/ERC20 txs; sponsors gas via CDP Paymaster on Base App / Smart Wallets. */
 export function useWriteContractWithBuilder() {
   const chainId = useChainId();
   const targetChainId = chainId || base.id;
-  const { data: capabilities } = useCapabilities();
-
-  const paymasterSupported = useMemo(() => {
-    if (!paymasterEnabled) return false;
-    return capabilities?.[targetChainId]?.paymasterService?.supported === true;
-  }, [capabilities, targetChainId]);
+  const shouldSponsor = useShouldSponsor();
 
   const writeResult = useWriteContract();
   const sendResult = useSendCalls();
@@ -64,12 +86,12 @@ export function useWriteContractWithBuilder() {
 
   const writeContract = useCallback(
     (params: WriteContractParams) => {
-      if (paymasterSupported) {
+      if (shouldSponsor) {
         sendResult.sendCalls({
           calls: [
             {
               to: params.address,
-              data: encodeCallData(params),
+              data: encodeCallData(params, true),
               value: params.value ?? 0n,
             },
           ],
@@ -86,17 +108,17 @@ export function useWriteContractWithBuilder() {
         dataSuffix: BUILDER_DATA_SUFFIX,
       } as Parameters<typeof writeResult.writeContract>[0]);
     },
-    [paymasterSupported, sendResult, targetChainId, writeResult],
+    [shouldSponsor, sendResult, targetChainId, writeResult],
   );
 
   const writeContractAsync = useCallback(
     async (params: WriteContractParams) => {
-      if (paymasterSupported) {
+      if (shouldSponsor) {
         return sendResult.sendCallsAsync({
           calls: [
             {
               to: params.address,
-              data: encodeCallData(params),
+              data: encodeCallData(params, true),
               value: params.value ?? 0n,
             },
           ],
@@ -112,7 +134,7 @@ export function useWriteContractWithBuilder() {
         dataSuffix: BUILDER_DATA_SUFFIX,
       } as Parameters<typeof writeResult.writeContractAsync>[0]);
     },
-    [paymasterSupported, sendResult, targetChainId, writeResult],
+    [shouldSponsor, sendResult, targetChainId, writeResult],
   );
 
   return {
@@ -123,7 +145,7 @@ export function useWriteContractWithBuilder() {
     hash,
     isPending: writeResult.isPending || sendResult.isPending,
     error: writeResult.error ?? sendResult.error,
-    paymasterSupported,
+    paymasterSupported: shouldSponsor,
     callsId,
     callsStatus: callsStatus.data,
   };
