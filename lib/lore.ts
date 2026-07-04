@@ -16,7 +16,7 @@ export const KINGDOMS: Kingdom[] = [
     name: "Fighter",
     realm: "Ironhold Dominion",
     logo: "/art/logo1.png",
-    banner: "/art/kingdom1.png",
+    banner: "/art/kingdom3.png",
     title: "/art/title1.png",
     lore:
       "Ironhold trains soldiers who never break formation. Their arenas are built into cliffside forges where every blow echoes like thunder. They hold the northern passes and supply steel to every front.",
@@ -28,7 +28,7 @@ export const KINGDOMS: Kingdom[] = [
     name: "Swordsman",
     realm: "Bladehaven Coast",
     logo: "/art/logo2.png",
-    banner: "/art/kingdom2.png",
+    banner: "/art/kingdom7.png",
     title: "/art/title2.png",
     lore:
       "Bladehaven's duelists strike faster than tide. Their schools line the eastern coves, and their captains lead expedition fleets with reckless grace. Speed is their doctrine — hesitation is exile.",
@@ -40,7 +40,7 @@ export const KINGDOMS: Kingdom[] = [
     name: "Mage",
     realm: "Ember Spire",
     logo: "/art/logo3.png",
-    banner: "/art/kingdom3.png",
+    banner: "/art/kingdom2.png",
     title: "/art/title3.png",
     lore:
       "Ember Spire pierces the storm clouds above the eastern sea. Archmages bind comet fire into spellglass. Their power is unmatched — and their towers burn brightest when the realm is threatened.",
@@ -52,7 +52,7 @@ export const KINGDOMS: Kingdom[] = [
     name: "Ninja",
     realm: "Shadow Veil",
     logo: "/art/logo4.png",
-    banner: "/art/kingdom4.png",
+    banner: "/art/kingdom1.png",
     title: "/art/title4.png",
     lore:
       "Ninjas are a mysterious order hidden in misty archipelagos for centuries. They served ancient dynasties by striking from shadow — hidden blades and clever poisons felled knights who never saw the blow coming. Kings still fear a blade they cannot see.",
@@ -88,7 +88,7 @@ export const KINGDOMS: Kingdom[] = [
     name: "Knight",
     realm: "Crownwall Bastion",
     logo: "/art/logo7.png",
-    banner: "/art/kingdom7.png",
+    banner: "/art/kingdom4.png",
     title: "/art/title7.png",
     lore:
       "Crownwall stands at the heart of the fractured map — an immovable fortress of honor and plate. Knights there swear to reunite the shards peacefully, or bury every tyrant who tries otherwise.",

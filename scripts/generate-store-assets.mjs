@@ -230,7 +230,7 @@ async function main() {
   await generateScreenshot({
     filename: "screenshot-1-realm.png",
     bgSrc: path.join(ART, "bg1.png"),
-    contentSrc: path.join(ART, "kingdom1.png"),
+    contentSrc: path.join(ART, "kingdom3.png"),
     badge: "REALM",
     title: "Explore & Mint",
     subtitle: "Seven kingdoms · hero NFTs on Base",
@@ -240,7 +240,7 @@ async function main() {
   await generateScreenshot({
     filename: "screenshot-2-quest.png",
     bgSrc: path.join(ART, "inventory-bg.png"),
-    contentSrc: path.join(ART, "kingdom4.png"),
+    contentSrc: path.join(ART, "kingdom6.png"),
     badge: "QUEST",
     title: "Daily Scrolls",
     subtitle: "Check-in · wheel · hero upgrades",
@@ -250,7 +250,7 @@ async function main() {
   await generateScreenshot({
     filename: "screenshot-3-arena.png",
     bgSrc: path.join(ART, "mapbg.jpg"),
-    contentSrc: path.join(ART, "class4.png"),
+    contentSrc: path.join(ART, "class3.png"),
     badge: "ARENA",
     title: "Enter the War",
     subtitle: "Cinematic battles · onchain leaderboard",

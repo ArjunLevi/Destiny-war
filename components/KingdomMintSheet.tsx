@@ -21,7 +21,7 @@ export function KingdomMintSheet({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-labelledby={`realm-title-${kingdom.id}`}
+        aria-label={`${kingdom.realm} — ${kingdom.name}`}
       >
         <button type="button" className="realm-sheet-close" onClick={onClose} aria-label="Close">
           ✕
@@ -35,17 +35,6 @@ export function KingdomMintSheet({
             className="realm-sheet-banner"
           />
           <div className="realm-sheet-banner-fade" aria-hidden />
-          <div className="realm-sheet-banner-meta">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={kingdom.logo} alt="" className="realm-sheet-sigil" />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={kingdom.title}
-              alt={kingdom.name}
-              className="realm-sheet-class-title"
-              id={`realm-title-${kingdom.id}`}
-            />
-          </div>
         </div>
 
         <div className="realm-sheet-body">
