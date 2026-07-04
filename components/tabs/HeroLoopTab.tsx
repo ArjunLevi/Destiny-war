@@ -1,14 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   useAccount,
   useReadContract,
   useWatchContractEvent,
 } from "wagmi";
-import type { LifecycleStatus } from "@coinbase/onchainkit/transaction";
 import { DestinyWallet } from "@/components/DestinyWallet";
-import { SponsoredHubAction } from "@/components/SponsoredHubAction";
+import { SponsoredContractButton } from "@/components/SponsoredContractButton";
+import { useWriteContractWithBuilder } from "@/lib/useWriteContractWithBuilder";
 import {
   DESTINY_HUB_ADDRESS,
   hubAbi,
@@ -99,20 +99,20 @@ function HeroUpgradeCard({
         ))}
         <div className="upgrade-btns">
           {stats.map(({ key, val, label }) => (
-            <SponsoredHubAction
+            <SponsoredContractButton
               key={key}
-              call={{
+              params={{
                 address: DESTINY_HUB_ADDRESS as `0x${string}`,
                 abi: hubAbi,
                 functionName: "upgradeStat",
                 args: [tokenId, statIndex(key)],
               }}
-              className="btn secondary upgrade-stat-btn sponsored-tx-btn"
+              className="btn secondary upgrade-stat-btn"
               disabled={val >= STAT_MAX || energy < 1}
               onSuccess={onRefetch}
             >
               +{label[0]}
-            </SponsoredHubAction>
+            </SponsoredContractButton>
           ))}
         </div>
       </div>
@@ -162,18 +162,19 @@ function DailyCheckInBoard({
         })}
       </div>
 
-      <SponsoredHubAction
-        call={{
+      <SponsoredContractButton
+        params={{
           address: DESTINY_HUB_ADDRESS as `0x${string}`,
           abi: hubAbi,
           functionName: "checkIn",
         }}
-        className={`btn gold quest-checkin-btn sponsored-tx-btn ${canCheckIn ? "pulse" : ""}`}
+        className={`btn gold quest-checkin-btn ${canCheckIn ? "pulse" : ""}`}
         disabled={!canCheckIn}
+        busyLabel="Checking in…"
         onSuccess={onSuccess}
       >
         {canCheckIn ? "Claim Daily Scrolls" : "Checked in today ✓"}
-      </SponsoredHubAction>
+      </SponsoredContractButton>
     </section>
   );
 }
@@ -183,6 +184,9 @@ export function HeroLoopTab() {
   const { gasSponsored, isInMiniApp } = usePaymasterStatus();
   const [spinResult, setSpinResult] = useState<number | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
+
+  const { writeContract, isConfirming: spinConfirming, error: spinError } =
+    useWriteContractWithBuilder();
 
   const { data: player, refetch: refetchPlayer } = useReadContract({
     address: DESTINY_HUB_ADDRESS as `0x${string}`,
@@ -245,20 +249,19 @@ export function HeroLoopTab() {
     refetchTokens();
   };
 
-  const onSpinStatus = (status: LifecycleStatus) => {
-    if (
-      status.statusName === "buildingTransaction" ||
-      status.statusName === "transactionPending"
-    ) {
-      setIsSpinning(true);
-    }
-    if (status.statusName === "error") {
-      setIsSpinning(false);
-    }
-    if (status.statusName === "success") {
-      refetchAll();
-    }
+  const spin = () => {
+    setSpinResult(null);
+    setIsSpinning(true);
+    writeContract({
+      address: DESTINY_HUB_ADDRESS as `0x${string}`,
+      abi: hubAbi,
+      functionName: "spin",
+    });
   };
+
+  useEffect(() => {
+    if (spinError) setIsSpinning(false);
+  }, [spinError]);
 
   const p = player as PlayerData | undefined;
   const energy = p ? Number(p.energy) : 0;
@@ -327,22 +330,16 @@ export function HeroLoopTab() {
 
             <ScrollWheel spinning={isSpinning} winnerId={spinResult} />
 
-            <SponsoredHubAction
-              call={{
-                address: DESTINY_HUB_ADDRESS as `0x${string}`,
-                abi: hubAbi,
-                functionName: "spin",
-              }}
-              className="btn gold quest-spin-btn sponsored-tx-btn"
-              disabled={energy < SPIN_COST || isSpinning}
-              onStatus={onSpinStatus}
-              onSuccess={() => {
-                setSpinResult(null);
-                setIsSpinning(true);
-              }}
+            <button
+              type="button"
+              className="btn gold quest-spin-btn"
+              disabled={energy < SPIN_COST || isSpinning || spinConfirming}
+              onClick={spin}
             >
-              {isSpinning ? "Spinning…" : `Spin Wheel (${SPIN_COST} scrolls)`}
-            </SponsoredHubAction>
+              {isSpinning || spinConfirming
+                ? "Spinning…"
+                : `Spin Wheel (${SPIN_COST} scrolls)`}
+            </button>
 
             {spinResult !== null && !isSpinning && (
               <p className="quest-spin-result">
@@ -375,10 +372,16 @@ export function HeroLoopTab() {
             )}
           </section>
 
+          {spinError && (
+            <p className="mint-err">
+              {(spinError as { shortMessage?: string }).shortMessage || "Tx failed"}
+            </p>
+          )}
+
           <p className="muted paymaster-hint">
             {gasSponsored || isInMiniApp
               ? "Gas sponsored via Coinbase Paymaster — confirm should show $0 fees."
-              : "Open inside Base App (not Coinbase Wallet browser) for $0 gas. External wallets pay small Base gas."}
+              : "Open inside Base App for $0 gas. External wallets pay small Base gas."}
           </p>
         </>
       )}

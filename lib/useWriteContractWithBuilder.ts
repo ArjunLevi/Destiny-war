@@ -5,6 +5,7 @@ import {
   useWriteContract,
   useSendCalls,
   useWaitForCallsStatus,
+  useWaitForTransactionReceipt,
   useCapabilities,
   useChainId,
   useAccount,
@@ -21,7 +22,7 @@ import { base } from "viem/chains";
 import { BUILDER_DATA_SUFFIX } from "@/lib/builderCode";
 import { clientPaymasterEnabled, getClientPaymasterUrl } from "@/lib/paymaster";
 
-type WriteContractParams = {
+export type WriteContractParams = {
   address: Address;
   abi: Abi | readonly unknown[];
   functionName: string;
@@ -36,7 +37,6 @@ function encodeCallData(params: WriteContractParams, sponsored: boolean): Hex {
     functionName: params.functionName,
     args: params.args as readonly unknown[],
   });
-  // Paymaster allowlists match raw function selectors — skip builder suffix when sponsoring.
   if (sponsored) return callData;
   return concatHex([callData, BUILDER_DATA_SUFFIX]);
 }
@@ -84,22 +84,38 @@ export function useWriteContractWithBuilder() {
   const sponsoredHash = callsStatus.data?.receipts?.[0]?.transactionHash;
   const hash = writeResult.data ?? sponsoredHash;
 
+  const { isLoading: confirmingReceipt, isSuccess: receiptSuccess } =
+    useWaitForTransactionReceipt({ hash });
+
+  const callsSuccess = callsStatus.data?.status === "success";
+  const isConfirming =
+    writeResult.isPending ||
+    sendResult.isPending ||
+    confirmingReceipt ||
+    (Boolean(callsId) && callsStatus.isLoading);
+  const isSuccess = receiptSuccess || callsSuccess;
+
+  const sendSponsoredCalls = useCallback(
+    (paramsList: WriteContractParams[]) => {
+      sendResult.sendCalls({
+        calls: paramsList.map((params) => ({
+          to: params.address,
+          data: encodeCallData(params, true),
+          value: params.value ?? 0n,
+        })),
+        capabilities: {
+          paymasterService: { url: getClientPaymasterUrl() },
+        },
+        chainId: paramsList[0]?.chainId ?? targetChainId,
+      });
+    },
+    [sendResult, targetChainId],
+  );
+
   const writeContract = useCallback(
     (params: WriteContractParams) => {
       if (shouldSponsor) {
-        sendResult.sendCalls({
-          calls: [
-            {
-              to: params.address,
-              data: encodeCallData(params, true),
-              value: params.value ?? 0n,
-            },
-          ],
-          capabilities: {
-            paymasterService: { url: getClientPaymasterUrl() },
-          },
-          chainId: params.chainId ?? targetChainId,
-        });
+        sendSponsoredCalls([params]);
         return;
       }
 
@@ -108,7 +124,24 @@ export function useWriteContractWithBuilder() {
         dataSuffix: BUILDER_DATA_SUFFIX,
       } as Parameters<typeof writeResult.writeContract>[0]);
     },
-    [shouldSponsor, sendResult, targetChainId, writeResult],
+    [shouldSponsor, sendSponsoredCalls, writeResult],
+  );
+
+  const writeContracts = useCallback(
+    (paramsList: WriteContractParams[]) => {
+      if (shouldSponsor) {
+        sendSponsoredCalls(paramsList);
+        return;
+      }
+
+      const first = paramsList[0];
+      if (!first) return;
+      writeResult.writeContract({
+        ...first,
+        dataSuffix: BUILDER_DATA_SUFFIX,
+      } as Parameters<typeof writeResult.writeContract>[0]);
+    },
+    [shouldSponsor, sendSponsoredCalls, writeResult],
   );
 
   const writeContractAsync = useCallback(
@@ -140,11 +173,14 @@ export function useWriteContractWithBuilder() {
   return {
     ...writeResult,
     writeContract,
+    writeContracts,
     writeContractAsync,
     data: hash,
     hash,
     isPending: writeResult.isPending || sendResult.isPending,
-    error: writeResult.error ?? sendResult.error,
+    isConfirming,
+    isSuccess,
+    error: writeResult.error ?? sendResult.error ?? callsStatus.error,
     paymasterSupported: shouldSponsor,
     callsId,
     callsStatus: callsStatus.data,
