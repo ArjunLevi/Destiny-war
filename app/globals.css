@@ -3295,6 +3295,19 @@ button.destiny-wallet-btn {
   width: 100%;
   max-width: 320px;
 }
+
+/* OnchainKit TransactionButton inside quest / mint flows */
+.sponsored-tx-btn {
+  width: 100%;
+}
+.upgrade-btns .sponsored-tx-btn {
+  width: auto;
+  flex: 1;
+  min-width: 0;
+}
+.quest-checkin-btn.sponsored-tx-btn {
+  max-width: none;
+}
 .quest-spin-result {
   margin: 12px 0 0;
   font-family: var(--display);

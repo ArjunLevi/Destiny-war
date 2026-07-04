@@ -30,14 +30,12 @@ export function usePaymasterStatus() {
     );
   }, [connector?.id, connector?.name]);
 
-  const gasSponsored =
-    clientPaymasterEnabled() &&
-    (walletSupportsPaymaster || isInMiniApp === true || isCoinbaseWallet);
-
   return {
     paymasterConfigured: clientPaymasterEnabled(),
     walletSupportsPaymaster,
     isInMiniApp: isInMiniApp === true,
-    gasSponsored,
+    gasSponsored:
+      clientPaymasterEnabled() &&
+      (walletSupportsPaymaster || isInMiniApp === true || isCoinbaseWallet),
   };
 }

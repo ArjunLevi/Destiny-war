@@ -16,7 +16,11 @@ export function RootProvider({ children }: { children: ReactNode }) {
           name: "DestinyWar",
           logo: APP_ICON_URL,
         },
-        wallet: { display: "modal", preference: "all" },
+        wallet: {
+          display: "modal",
+          // Base mini app: force Smart Wallet so CDP Paymaster can sponsor gas.
+          preference: "smartWalletOnly",
+        },
         paymaster: `${APP_ORIGIN}/api/paymaster`,
       }}
       miniKit={{

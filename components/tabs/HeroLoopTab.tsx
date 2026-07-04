@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   useAccount,
   useReadContract,
-  useWaitForTransactionReceipt,
   useWatchContractEvent,
 } from "wagmi";
-import { useWriteContractWithBuilder } from "@/lib/useWriteContractWithBuilder";
+import type { LifecycleStatus } from "@coinbase/onchainkit/transaction";
 import { DestinyWallet } from "@/components/DestinyWallet";
+import { SponsoredHubAction } from "@/components/SponsoredHubAction";
 import {
   DESTINY_HUB_ADDRESS,
   hubAbi,
@@ -58,7 +58,6 @@ function HeroUpgradeCard({
   energy: number;
   onRefetch: () => void;
 }) {
-  const { address } = useAccount();
   const { data: hero } = useReadContract({
     address: DESTINY_HUB_ADDRESS as `0x${string}`,
     abi: hubAbi,
@@ -66,15 +65,6 @@ function HeroUpgradeCard({
     args: [tokenId],
     query: { enabled: hubConfigured },
   });
-
-  const { writeContract, data: hash, isPending } = useWriteContractWithBuilder();
-  const { isLoading: confirming, isSuccess } = useWaitForTransactionReceipt({
-    hash,
-  });
-
-  useEffect(() => {
-    if (isSuccess) onRefetch();
-  }, [isSuccess, onRefetch]);
 
   if (!hero) return null;
 
@@ -85,18 +75,7 @@ function HeroUpgradeCard({
     speed: number;
   };
   const meta = HEROES.find((x) => x.id === h.classId) ?? HEROES[0];
-  const busy = isPending || confirming;
   const avgStat = Math.round((h.power + h.strength + h.speed) / 3);
-
-  const upgrade = (stat: StatType) => {
-    if (!address || energy < 1) return;
-    writeContract({
-      address: DESTINY_HUB_ADDRESS as `0x${string}`,
-      abi: hubAbi,
-      functionName: "upgradeStat",
-      args: [tokenId, statIndex(stat)],
-    });
-  };
 
   const stats: { key: StatType; val: number; label: string }[] = [
     { key: "power", val: h.power, label: "Power" },
@@ -120,16 +99,20 @@ function HeroUpgradeCard({
         ))}
         <div className="upgrade-btns">
           {stats.map(({ key, val, label }) => (
-            <button
+            <SponsoredHubAction
               key={key}
-              type="button"
-              className="btn secondary upgrade-stat-btn"
-              disabled={busy || val >= STAT_MAX || energy < 1}
-              onClick={() => upgrade(key)}
-              title={`Upgrade ${label}`}
+              call={{
+                address: DESTINY_HUB_ADDRESS as `0x${string}`,
+                abi: hubAbi,
+                functionName: "upgradeStat",
+                args: [tokenId, statIndex(key)],
+              }}
+              className="btn secondary upgrade-stat-btn sponsored-tx-btn"
+              disabled={val >= STAT_MAX || energy < 1}
+              onSuccess={onRefetch}
             >
               +{label[0]}
-            </button>
+            </SponsoredHubAction>
           ))}
         </div>
       </div>
@@ -141,14 +124,12 @@ function DailyCheckInBoard({
   streak,
   canCheckIn,
   nextReward,
-  busy,
-  onCheckIn,
+  onSuccess,
 }: {
   streak: number;
   canCheckIn: boolean;
   nextReward: number;
-  busy: boolean;
-  onCheckIn: () => void;
+  onSuccess: () => void;
 }) {
   const nextDay = canCheckIn ? streak + 1 : streak;
 
@@ -181,21 +162,25 @@ function DailyCheckInBoard({
         })}
       </div>
 
-      <button
-        type="button"
-        className={`btn gold quest-checkin-btn ${canCheckIn ? "pulse" : ""}`}
-        disabled={busy || !canCheckIn}
-        onClick={onCheckIn}
+      <SponsoredHubAction
+        call={{
+          address: DESTINY_HUB_ADDRESS as `0x${string}`,
+          abi: hubAbi,
+          functionName: "checkIn",
+        }}
+        className={`btn gold quest-checkin-btn sponsored-tx-btn ${canCheckIn ? "pulse" : ""}`}
+        disabled={!canCheckIn}
+        onSuccess={onSuccess}
       >
         {canCheckIn ? "Claim Daily Scrolls" : "Checked in today ✓"}
-      </button>
+      </SponsoredHubAction>
     </section>
   );
 }
 
 export function HeroLoopTab() {
   const { address, isConnected } = useAccount();
-  const { gasSponsored } = usePaymasterStatus();
+  const { gasSponsored, isInMiniApp } = usePaymasterStatus();
   const [spinResult, setSpinResult] = useState<number | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
 
@@ -231,10 +216,6 @@ export function HeroLoopTab() {
     query: { enabled: Boolean(address && hubConfigured) },
   });
 
-  const { writeContract, data: txHash, isPending, error: txError } =
-    useWriteContractWithBuilder();
-  const { isLoading: confirming } = useWaitForTransactionReceipt({ hash: txHash });
-
   useWatchContractEvent({
     address: DESTINY_HUB_ADDRESS as `0x${string}`,
     abi: hubAbi,
@@ -264,36 +245,25 @@ export function HeroLoopTab() {
     refetchTokens();
   };
 
+  const onSpinStatus = (status: LifecycleStatus) => {
+    if (
+      status.statusName === "buildingTransaction" ||
+      status.statusName === "transactionPending"
+    ) {
+      setIsSpinning(true);
+    }
+    if (status.statusName === "error") {
+      setIsSpinning(false);
+    }
+    if (status.statusName === "success") {
+      refetchAll();
+    }
+  };
+
   const p = player as PlayerData | undefined;
   const energy = p ? Number(p.energy) : 0;
   const streak = p ? Number(p.streakDay) : 0;
-  const busy = isPending || confirming;
   const ids = (tokenIds as bigint[] | undefined) ?? [];
-
-  const checkIn = () =>
-    writeContract({
-      address: DESTINY_HUB_ADDRESS as `0x${string}`,
-      abi: hubAbi,
-      functionName: "checkIn",
-    });
-
-  const spin = () => {
-    setSpinResult(null);
-    setIsSpinning(true);
-    writeContract({
-      address: DESTINY_HUB_ADDRESS as `0x${string}`,
-      abi: hubAbi,
-      functionName: "spin",
-    });
-  };
-
-  useEffect(() => {
-    if (txHash && !confirming) refetchAll();
-  }, [txHash, confirming]);
-
-  useEffect(() => {
-    if (txError) setIsSpinning(false);
-  }, [txError]);
 
   if (!hubConfigured) {
     return (
@@ -345,8 +315,7 @@ export function HeroLoopTab() {
             streak={streak}
             canCheckIn={Boolean(canCheckIn)}
             nextReward={Number(nextReward ?? DAILY_ENERGY)}
-            busy={busy}
-            onCheckIn={checkIn}
+            onSuccess={refetchPlayer}
           />
 
           <section className="quest-panel quest-wheel-panel">
@@ -358,14 +327,22 @@ export function HeroLoopTab() {
 
             <ScrollWheel spinning={isSpinning} winnerId={spinResult} />
 
-            <button
-              type="button"
-              className="btn gold quest-spin-btn"
-              disabled={busy || energy < SPIN_COST || isSpinning}
-              onClick={spin}
+            <SponsoredHubAction
+              call={{
+                address: DESTINY_HUB_ADDRESS as `0x${string}`,
+                abi: hubAbi,
+                functionName: "spin",
+              }}
+              className="btn gold quest-spin-btn sponsored-tx-btn"
+              disabled={energy < SPIN_COST || isSpinning}
+              onStatus={onSpinStatus}
+              onSuccess={() => {
+                setSpinResult(null);
+                setIsSpinning(true);
+              }}
             >
               {isSpinning ? "Spinning…" : `Spin Wheel (${SPIN_COST} scrolls)`}
-            </button>
+            </SponsoredHubAction>
 
             {spinResult !== null && !isSpinning && (
               <p className="quest-spin-result">
@@ -398,16 +375,10 @@ export function HeroLoopTab() {
             )}
           </section>
 
-          {txError && (
-            <p className="mint-err">
-              {(txError as { shortMessage?: string }).shortMessage || "Tx failed"}
-            </p>
-          )}
-
           <p className="muted paymaster-hint">
-            {gasSponsored
-              ? "Gas sponsored via Coinbase Paymaster on Base."
-              : "Open in Base App for gas-free check-ins and upgrades. MetaMask pays small Base gas."}
+            {gasSponsored || isInMiniApp
+              ? "Gas sponsored via Coinbase Paymaster — confirm should show $0 fees."
+              : "Open inside Base App (not Coinbase Wallet browser) for $0 gas. External wallets pay small Base gas."}
           </p>
         </>
       )}

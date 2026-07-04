@@ -1,14 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { parseUnits } from "viem";
-import {
-  useAccount,
-  useReadContract,
-  useWaitForTransactionReceipt,
-} from "wagmi";
-import { useWriteContractWithBuilder } from "@/lib/useWriteContractWithBuilder";
+import { useAccount, useReadContract } from "wagmi";
 import { DestinyWallet } from "@/components/DestinyWallet";
+import { SponsoredAction } from "@/components/SponsoredAction";
 import { TxWalletHint } from "@/components/TxWalletHint";
 import { HEROES } from "@/lib/heroes";
 import {
@@ -21,20 +17,6 @@ import {
   erc20Abi,
 } from "@/lib/contracts";
 
-function friendlyTxError(err: unknown): string {
-  const msg =
-    (err as { shortMessage?: string; message?: string }).shortMessage ||
-    (err as { message?: string }).message ||
-    "";
-  if (/rejected|denied|cancel/i.test(msg)) {
-    return "Cancelled in wallet — tap Mint again when ready.";
-  }
-  if (/insufficient/i.test(msg)) {
-    return "Not enough USDC or ETH on Base.";
-  }
-  return msg || "Transaction failed";
-}
-
 export function MintCard({
   heroId,
   compact,
@@ -45,6 +27,7 @@ export function MintCard({
   const hero = HEROES.find((h) => h.id === heroId)!;
   const { address, isConnected } = useAccount();
   const [qty, setQty] = useState(1);
+  const [mintDone, setMintDone] = useState(false);
 
   const total = parseUnits(String(MINT_PRICE_USDC * qty), USDC_DECIMALS);
 
@@ -73,46 +56,13 @@ export function MintCard({
   const hasEnoughUsdc =
     usdcBalance !== undefined && (usdcBalance as bigint) >= total;
 
-  const {
-    writeContract: writeApprove,
-    data: approveHash,
-    isPending: approvePending,
-    error: approveError,
-  } = useWriteContractWithBuilder();
-  const { isLoading: approveConfirming, isSuccess: approveDone } =
-    useWaitForTransactionReceipt({ hash: approveHash });
+  const onApproveSuccess = () => {
+    refetchAllowance();
+  };
 
-  const {
-    writeContract: writeMint,
-    data: mintHash,
-    isPending: mintPending,
-    error: mintError,
-  } = useWriteContractWithBuilder();
-  const { isLoading: mintConfirming, isSuccess: mintDone } =
-    useWaitForTransactionReceipt({ hash: mintHash });
-
-  useEffect(() => {
-    if (approveDone) refetchAllowance();
-  }, [approveDone, refetchAllowance]);
-
-  const approve = () =>
-    writeApprove({
-      address: USDC_ADDRESS,
-      abi: erc20Abi,
-      functionName: "approve",
-      args: [DESTINY_HUB_ADDRESS as `0x${string}`, total],
-    });
-
-  const mint = () =>
-    writeMint({
-      address: DESTINY_HUB_ADDRESS as `0x${string}`,
-      abi: hubAbi,
-      functionName: "mintHero",
-      args: [heroId, BigInt(qty)],
-    });
-
-  const busy = approvePending || approveConfirming || mintPending || mintConfirming;
-  const err = approveError || mintError;
+  const onMintSuccess = () => {
+    setMintDone(true);
+  };
 
   return (
     <div className={`mint-card ${compact ? "mint-card-compact" : ""}`}>
@@ -145,27 +95,51 @@ export function MintCard({
         </>
       ) : needsApproval ? (
         <>
-          <button className="btn gold mint-btn" onClick={approve} disabled={busy || !hasEnoughUsdc}>
-            {approvePending || approveConfirming ? "Approving…" : "1. Approve USDC"}
-          </button>
+          <SponsoredAction
+            calls={[
+              {
+                address: USDC_ADDRESS,
+                abi: erc20Abi,
+                functionName: "approve",
+                args: [DESTINY_HUB_ADDRESS as `0x${string}`, total],
+              },
+            ]}
+            className="btn gold mint-btn sponsored-tx-btn"
+            disabled={!hasEnoughUsdc}
+            onSuccess={onApproveSuccess}
+          >
+            1. Approve USDC
+          </SponsoredAction>
           <TxWalletHint action="approveUsdc" />
         </>
       ) : (
         <>
-          <button className="btn gold mint-btn" onClick={mint} disabled={busy || !hasEnoughUsdc}>
-            {mintPending || mintConfirming
-              ? "Minting…"
-              : mintDone
-                ? "Champion Minted ✓"
-                : `Mint ${qty} ${hero.name}${qty > 1 ? "s" : ""}`}
-          </button>
-          {!mintDone && !busy && <TxWalletHint action="mintHero" />}
+          <SponsoredAction
+            calls={[
+              {
+                address: DESTINY_HUB_ADDRESS as `0x${string}`,
+                abi: hubAbi,
+                functionName: "mintHero",
+                args: [heroId, BigInt(qty)],
+              },
+            ]}
+            className="btn gold mint-btn sponsored-tx-btn"
+            disabled={!hasEnoughUsdc || mintDone}
+            onSuccess={onMintSuccess}
+          >
+            {mintDone
+              ? "Champion Minted ✓"
+              : `Mint ${qty} ${hero.name}${qty > 1 ? "s" : ""}`}
+          </SponsoredAction>
+          {!mintDone && <TxWalletHint action="mintHero" />}
         </>
       )}
       {!hasEnoughUsdc && isConnected && hubConfigured && (
         <p className="mint-warn">Need {(MINT_PRICE_USDC * qty).toFixed(2)} USDC on Base</p>
       )}
-      {err && <p className="mint-err">{friendlyTxError(err)}</p>}
+      <p className="muted mint-gas-note">
+        Mint costs USDC only — gas is sponsored in Base App ($0 ETH).
+      </p>
     </div>
   );
 }
