@@ -158,6 +158,21 @@ async function generateHero() {
     .toFile(path.join(OUT, "hero-1200x630.png"));
 }
 
+function phoneChromeSvg(width, height) {
+  return Buffer.from(`<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="topBar" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#041018" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#041018" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="${width}" height="180" fill="url(#topBar)"/>
+  <text x="${width / 2}" y="72" text-anchor="middle" fill="${COLORS.goldLight}" font-family="Arial Black, Arial, sans-serif" font-size="34" font-weight="900" letter-spacing="3">DESTINYWAR</text>
+  <text x="${width / 2}" y="108" text-anchor="middle" fill="${COLORS.muted}" font-family="Arial, sans-serif" font-size="20">Seven Kingdoms · One War</text>
+  <rect x="${width / 2 - 54}" y="28" width="108" height="6" rx="3" fill="rgba(255,255,255,0.18)"/>
+</svg>`);
+}
+
 async function generateScreenshot({
   filename,
   bgSrc,
@@ -165,23 +180,28 @@ async function generateScreenshot({
   badge,
   title,
   subtitle,
+  contentTopRatio = 0.2,
+  contentHeightRatio = 0.64,
 }) {
   const W = 1284;
   const H = 2778;
-  const framePad = 52;
+  const framePad = 48;
   const contentW = W - framePad * 2;
 
   const bg = await coverBg(bgSrc, W, H);
   const content = await sharp(contentSrc)
-    .resize(contentW, Math.round(H * 0.62), { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .resize(contentW, Math.round(H * contentHeightRatio), {
+      fit: "contain",
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
     .png()
     .toBuffer();
   const cm = await sharp(content).metadata();
   const contentLeft = Math.round((W - cm.width) / 2);
-  const contentTop = Math.round(H * 0.22);
+  const contentTop = Math.round(H * contentTopRatio);
 
   const frame = Buffer.from(`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
-    <rect x="${framePad - 4}" y="${contentTop - 4}" width="${cm.width + 8}" height="${cm.height + 8}" rx="28" fill="none" stroke="${COLORS.gold}" stroke-opacity="0.45" stroke-width="3"/>
+    <rect x="${framePad - 6}" y="${contentTop - 6}" width="${cm.width + 12}" height="${cm.height + 12}" rx="32" fill="rgba(4,16,24,0.35)" stroke="${COLORS.gold}" stroke-opacity="0.55" stroke-width="4"/>
   </svg>`);
 
   const overlay = svgTextOverlay({
@@ -192,10 +212,93 @@ async function generateScreenshot({
     badge,
   });
 
+  const chrome = phoneChromeSvg(W, H);
+
   await sharp(bg)
     .composite([
       { input: content, left: contentLeft, top: contentTop },
       { input: frame, left: 0, top: 0 },
+      { input: chrome, left: 0, top: 0 },
+      { input: overlay, left: 0, top: 0 },
+    ])
+    .jpeg({ quality: 86, mozjpeg: true })
+    .toFile(path.join(OUT, filename.replace(".png", ".jpg")));
+
+  await sharp(path.join(OUT, filename.replace(".png", ".jpg")))
+    .png({ compressionLevel: 9 })
+    .toFile(path.join(OUT, filename));
+}
+
+async function generateQuestScreenshot() {
+  const W = 1284;
+  const H = 2778;
+  const framePad = 48;
+  const panelW = W - framePad * 2;
+  const panelH = Math.round(H * 0.64);
+  const panelTop = Math.round(H * 0.2);
+
+  const bg = await coverBg(path.join(ART, "inventory-bg.png"), W, H);
+
+  const scrollBg = await sharp(path.join(ART, "scrolls", "scroll_bg.png"))
+    .resize(panelW, Math.round(panelH * 0.72), { fit: "cover", position: "centre" })
+    .png()
+    .toBuffer();
+
+  const header = await sharp(path.join(ART, "scrolls", "crafting_scroll.png"))
+    .resize(Math.round(panelW * 0.92), null, { fit: "inside" })
+    .png()
+    .toBuffer();
+  const hm = await sharp(header).metadata();
+
+  const weapon = await sharp(path.join(ART, "scrolls", "weapon.png"))
+    .resize(220, 220, { fit: "inside" })
+    .png()
+    .toBuffer();
+  const wm = await sharp(weapon).metadata();
+
+  const armor = await sharp(path.join(ART, "scrolls", "armor.png"))
+    .resize(180, 180, { fit: "inside" })
+    .png()
+    .toBuffer();
+  const am = await sharp(armor).metadata();
+
+  const panel = await sharp({
+    create: {
+      width: panelW,
+      height: panelH,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    },
+  })
+    .composite([
+      { input: scrollBg, left: 0, top: Math.round(panelH * 0.08) },
+      { input: header, left: Math.round((panelW - hm.width) / 2), top: 24 },
+      { input: weapon, left: Math.round(panelW * 0.18), top: Math.round(panelH * 0.42) },
+      { input: armor, left: Math.round(panelW * 0.62), top: Math.round(panelH * 0.48) },
+    ])
+    .png()
+    .toBuffer();
+
+  const frame = Buffer.from(`<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
+    <rect x="${framePad - 6}" y="${panelTop - 6}" width="${panelW + 12}" height="${panelH + 12}" rx="32" fill="rgba(4,16,24,0.35)" stroke="${COLORS.gold}" stroke-opacity="0.55" stroke-width="4"/>
+  </svg>`);
+
+  const overlay = svgTextOverlay({
+    width: W,
+    height: H,
+    title: "Daily Scrolls",
+    subtitle: "Check-in · wheel · hero upgrades",
+    badge: "QUEST",
+  });
+
+  const chrome = phoneChromeSvg(W, H);
+  const filename = "screenshot-2-quest.png";
+
+  await sharp(bg)
+    .composite([
+      { input: panel, left: framePad, top: panelTop },
+      { input: frame, left: 0, top: 0 },
+      { input: chrome, left: 0, top: 0 },
       { input: overlay, left: 0, top: 0 },
     ])
     .jpeg({ quality: 86, mozjpeg: true })
@@ -234,26 +337,23 @@ async function main() {
     badge: "REALM",
     title: "Explore & Mint",
     subtitle: "Seven kingdoms · hero NFTs on Base",
+    contentTopRatio: 0.2,
+    contentHeightRatio: 0.64,
   });
   console.log("  ✓ screenshot-1-realm.png (1284×2778)");
 
-  await generateScreenshot({
-    filename: "screenshot-2-quest.png",
-    bgSrc: path.join(ART, "inventory-bg.png"),
-    contentSrc: path.join(ART, "kingdom6.png"),
-    badge: "QUEST",
-    title: "Daily Scrolls",
-    subtitle: "Check-in · wheel · hero upgrades",
-  });
+  await generateQuestScreenshot();
   console.log("  ✓ screenshot-2-quest.png (1284×2778)");
 
   await generateScreenshot({
     filename: "screenshot-3-arena.png",
     bgSrc: path.join(ART, "mapbg.jpg"),
-    contentSrc: path.join(ART, "class3.png"),
+    contentSrc: path.join(ART, "class1.png"),
     badge: "ARENA",
     title: "Enter the War",
     subtitle: "Cinematic battles · onchain leaderboard",
+    contentTopRatio: 0.2,
+    contentHeightRatio: 0.64,
   });
   console.log("  ✓ screenshot-3-arena.png (1284×2778)");
 
