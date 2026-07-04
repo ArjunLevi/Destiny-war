@@ -51,6 +51,28 @@ NEXT_PUBLIC_ONCHAINKIT_API_KEY=your_key_here
 
 ---
 
+## 2b. Enable gas sponsorship (Coinbase Paymaster)
+
+Gas is **$0 for users in Base App** when Paymaster is enabled and your hub functions are allowlisted.
+
+1. In [CDP Portal](https://portal.cdp.coinbase.com) → **Paymaster** → enable for **Base mainnet**.
+2. **Allowlist** your hub (`NEXT_PUBLIC_DESTINY_HUB_ADDRESS`) functions:
+   - `checkIn()`
+   - `spin()`
+   - `upgradeStat(uint256,uint8)`
+   - `mintHero(uint8,uint256)`
+3. Optionally allowlist Base USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` → `approve(address,uint256)` for gas-free approve step.
+4. Set paymaster budget (per-user + global limits) in the portal.
+5. On Vercel, add server env (optional if using the same CDP key):
+   ```
+   CDP_PAYMASTER_URL=https://api.developer.coinbase.com/rpc/v1/base/YOUR_KEY
+   ```
+   If omitted, `/api/paymaster` derives the URL from `NEXT_PUBLIC_ONCHAINKIT_API_KEY`.
+
+**Note:** Mint still costs **0.01 USDC** per hero (game fee). Paymaster only covers **ETH gas**. MetaMask users outside Base App still pay gas unless they use a Smart Wallet.
+
+---
+
 ## 3. Deploy HeroMint (0.01 USDC per NFT)
 
 1. Open Remix → create `HeroMint.sol` (paste from `contracts/HeroMint.sol`).

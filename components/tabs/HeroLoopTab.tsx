@@ -24,6 +24,7 @@ import { HEROES } from "@/lib/heroes";
 import { statIndex, type StatType } from "@/lib/gameConstants";
 import { ScrollBadge } from "@/components/ScrollBadge";
 import { ScrollWheel } from "@/components/ScrollWheel";
+import { usePaymasterStatus } from "@/lib/usePaymasterStatus";
 
 type PlayerData = {
   energy: bigint;
@@ -194,6 +195,7 @@ function DailyCheckInBoard({
 
 export function HeroLoopTab() {
   const { address, isConnected } = useAccount();
+  const { gasSponsored } = usePaymasterStatus();
   const [spinResult, setSpinResult] = useState<number | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
 
@@ -403,7 +405,9 @@ export function HeroLoopTab() {
           )}
 
           <p className="muted paymaster-hint">
-            Gas sponsored via Coinbase Smart Wallet / Paymaster on Base when enabled.
+            {gasSponsored
+              ? "Gas sponsored via Coinbase Paymaster on Base."
+              : "Open in Base App for gas-free check-ins and upgrades. MetaMask pays small Base gas."}
           </p>
         </>
       )}

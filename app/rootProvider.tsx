@@ -16,6 +16,7 @@ export function RootProvider({ children }: { children: ReactNode }) {
           logo: `${process.env.NEXT_PUBLIC_URL ?? "https://destinywar.app"}/art/logo.png`,
         },
         wallet: { display: "modal", preference: "all" },
+        paymaster: "/api/paymaster",
       }}
       miniKit={{
         enabled: true,
