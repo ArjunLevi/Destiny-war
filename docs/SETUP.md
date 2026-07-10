@@ -53,23 +53,35 @@ NEXT_PUBLIC_ONCHAINKIT_API_KEY=your_key_here
 
 ## 2b. Enable gas sponsorship (Coinbase Paymaster)
 
-Gas is **$0 for users in Base App** when Paymaster is enabled and your hub functions are allowlisted.
+Gas is **$0 for users in Base App** when Paymaster is enabled, billed, and your hub functions are allowlisted.
 
-1. In [CDP Portal](https://portal.cdp.coinbase.com) → **Paymaster** → enable for **Base mainnet**.
-2. **Allowlist** your hub (`NEXT_PUBLIC_DESTINY_HUB_ADDRESS`) functions:
+### Required: CDP billing
+
+If `/api/paymaster` returns `payment method not found` (HTTP 402), sponsorship will never work — the wallet falls back to charging the user ~$0.003–0.01 ETH gas.
+
+1. Open [CDP Portal → Billing](https://portal.cdp.coinbase.com) and **add a payment method**.
+2. Confirm Paymaster credits / spend limits are active for your project.
+3. Verify with: `GET https://destinywar.app/api/paymaster` → should show `"billingOk": true`.
+
+### Allowlist + env
+
+1. In [CDP Portal](https://portal.cdp.coinbase.com) → **Onchain Tools → Paymaster** → enable for **Base mainnet** (not only Sepolia).
+2. **Allowlist** hub `0x25Ce9327AEFFb1595237AE0ED417Ad8EB9444778` functions:
    - `checkIn()`
    - `spin()`
    - `upgradeStat(uint256,uint8)`
    - `mintHero(uint8,uint256)`
-3. Optionally allowlist Base USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` → `approve(address,uint256)` for gas-free approve step.
+3. Optionally allowlist Base USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` → `approve(address,uint256)`.
 4. Set paymaster budget (per-user + global limits) in the portal.
-5. On Vercel, add server env (optional if using the same CDP key):
+5. On Vercel (Production), set:
    ```
+   NEXT_PUBLIC_ONCHAINKIT_API_KEY=...
    CDP_PAYMASTER_URL=https://api.developer.coinbase.com/rpc/v1/base/YOUR_KEY
+   NEXT_PUBLIC_URL=https://destinywar.app
    ```
-   If omitted, `/api/paymaster` derives the URL from `NEXT_PUBLIC_ONCHAINKIT_API_KEY`.
+   If `CDP_PAYMASTER_URL` is omitted, `/api/paymaster` derives the URL from the OnchainKit key.
 
-**Note:** Mint still costs **0.01 USDC** per hero (game fee). Paymaster only covers **ETH gas**. MetaMask users outside Base App still pay gas unless they use a Smart Wallet.
+**Note:** Mint still costs **0.01 USDC** per hero (game fee). Paymaster only covers **ETH gas**. MetaMask / browser EOAs outside Base App still pay gas.
 
 ---
 
