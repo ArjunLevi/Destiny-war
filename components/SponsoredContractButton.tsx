@@ -5,6 +5,7 @@ import {
   useWriteContractWithBuilder,
   type WriteContractParams,
 } from "@/lib/useWriteContractWithBuilder";
+import { usePaymasterStatus } from "@/lib/usePaymasterStatus";
 
 type SponsoredContractButtonProps = {
   params: WriteContractParams;
@@ -24,20 +25,49 @@ export function SponsoredContractButton({
   onSuccess,
   children,
 }: SponsoredContractButtonProps) {
-  const { writeContract, isConfirming, isSuccess } = useWriteContractWithBuilder();
+  const { writeContract, isConfirming, isSuccess, error } =
+    useWriteContractWithBuilder();
+  const { billingOk, healthError } = usePaymasterStatus();
 
   useEffect(() => {
     if (isSuccess) onSuccess?.();
   }, [isSuccess, onSuccess]);
 
+  const billingBlocked = billingOk === false;
+
   return (
-    <button
-      type="button"
-      className={className}
-      disabled={disabled || isConfirming}
-      onClick={() => writeContract(params)}
-    >
-      {isConfirming ? busyLabel : children}
-    </button>
+    <div className="sponsored-action-wrap">
+      <button
+        type="button"
+        className={className}
+        disabled={disabled || isConfirming || billingBlocked}
+        onClick={() => writeContract(params)}
+        title={
+          billingBlocked
+            ? healthError ||
+              "CDP Paymaster billing is not set — add a payment method in CDP Portal"
+            : undefined
+        }
+      >
+        {billingBlocked
+          ? "Paymaster billing required"
+          : isConfirming
+            ? busyLabel
+            : children}
+      </button>
+      {billingBlocked && (
+        <p className="mint-err">
+          {healthError ||
+            "CDP Paymaster needs a payment method. Add one at portal.cdp.coinbase.com → Billing."}
+        </p>
+      )}
+      {error && !billingBlocked && (
+        <p className="mint-err">
+          {(error as { shortMessage?: string }).shortMessage ||
+            error.message ||
+            "Transaction failed"}
+        </p>
+      )}
+    </div>
   );
 }
