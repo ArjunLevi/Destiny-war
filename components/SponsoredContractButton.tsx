@@ -32,7 +32,7 @@ export function SponsoredContractButton({
   }, [isSuccess, onSuccess]);
 
   return (
-    <div className="sponsored-action-wrap">
+    <>
       <button
         type="button"
         className={className}
@@ -42,12 +42,12 @@ export function SponsoredContractButton({
         {isConfirming ? busyLabel : children}
       </button>
       {error && (
-        <p className="mint-err">
+        <p className="mint-err sponsored-action-err">
           {(error as { shortMessage?: string }).shortMessage ||
             error.message ||
             "Transaction failed"}
         </p>
       )}
-    </div>
+    </>
   );
 }

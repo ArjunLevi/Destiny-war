@@ -3008,11 +3008,18 @@ button.destiny-wallet-btn {
   display: flex;
   gap: 6px;
   margin-top: 8px;
+  width: 100%;
 }
 .upgrade-stat-btn {
-  flex: 1;
-  padding: 6px !important;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 8px 6px !important;
   font-size: 12px !important;
+  border-radius: 10px !important;
+  line-height: 1.2;
+}
+.upgrade-btns .sponsored-action-err {
+  display: none;
 }
 .paymaster-hint {
   font-size: 11px;
@@ -3296,17 +3303,16 @@ button.destiny-wallet-btn {
   max-width: 320px;
 }
 
-/* OnchainKit TransactionButton inside quest / mint flows */
+/* Sponsored action buttons in quest / mint flows */
 .sponsored-tx-btn {
   width: 100%;
 }
-.upgrade-btns .sponsored-tx-btn {
-  width: auto;
-  flex: 1;
-  min-width: 0;
-}
 .quest-checkin-btn.sponsored-tx-btn {
   max-width: none;
+}
+.sponsored-action-err {
+  margin: 6px 0 0;
+  font-size: 12px;
 }
 .quest-spin-result {
   margin: 12px 0 0;
@@ -3346,8 +3352,8 @@ button.destiny-wallet-btn {
 }
 .hero-upgrade-lvl {
   position: absolute;
-  bottom: -4px;
-  right: -4px;
+  top: -4px;
+  left: -4px;
   font-family: var(--display);
   font-size: 11px;
   padding: 2px 6px;
@@ -3355,6 +3361,8 @@ button.destiny-wallet-btn {
   background: var(--gold);
   color: #1a1208;
   border: 2px solid #0f2018;
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* ---------- Throne / Weekly Leaderboard ---------- */
