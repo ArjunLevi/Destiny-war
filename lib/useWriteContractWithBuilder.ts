@@ -21,6 +21,7 @@ import {
 import { base } from "viem/chains";
 import { BUILDER_DATA_SUFFIX } from "@/lib/builderCode";
 import { clientPaymasterEnabled, getClientPaymasterUrl } from "@/lib/paymaster";
+import { usePaymasterStatus } from "@/lib/usePaymasterStatus";
 
 export type WriteContractParams = {
   address: Address;
@@ -47,9 +48,12 @@ function useShouldSponsor() {
   const { connector } = useAccount();
   const { isInMiniApp } = useIsInMiniApp();
   const { data: capabilities } = useCapabilities({ chainId: targetChainId });
+  const { billingOk } = usePaymasterStatus();
 
   return useMemo(() => {
     if (!clientPaymasterEnabled()) return false;
+    // CDP returns 402 without billing/credits — fall back to user-paid gas.
+    if (billingOk === false) return false;
 
     const walletSupportsPaymaster =
       capabilities?.[targetChainId]?.paymasterService?.supported === true;
@@ -63,7 +67,14 @@ function useShouldSponsor() {
       name.includes("base");
 
     return walletSupportsPaymaster || isInMiniApp === true || isCoinbaseWallet;
-  }, [capabilities, targetChainId, connector?.id, connector?.name, isInMiniApp]);
+  }, [
+    capabilities,
+    targetChainId,
+    connector?.id,
+    connector?.name,
+    isInMiniApp,
+    billingOk,
+  ]);
 }
 
 /** Writes hub/ERC20 txs; sponsors gas via CDP Paymaster on Base App / Smart Wallets. */

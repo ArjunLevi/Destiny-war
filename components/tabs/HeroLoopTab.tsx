@@ -181,8 +181,7 @@ function DailyCheckInBoard({
 
 export function HeroLoopTab() {
   const { address, isConnected } = useAccount();
-  const { gasSponsored, isInMiniApp, billingOk, healthError } =
-    usePaymasterStatus();
+  const { gasSponsored, isInMiniApp, billingOk } = usePaymasterStatus();
   const [spinResult, setSpinResult] = useState<number | null>(null);
   const [isSpinning, setIsSpinning] = useState(false);
 
@@ -381,8 +380,7 @@ export function HeroLoopTab() {
 
           <p className="muted paymaster-hint">
             {billingOk === false
-              ? healthError ||
-                "Paymaster billing not set — add a payment method in CDP Portal, then gas can be $0."
+              ? "Paymaster credits pending — check-in works now with a small Base gas fee. Apply for gas credits in CDP Paymaster for $0 gas."
               : gasSponsored || isInMiniApp
                 ? "Gas sponsored via Coinbase Paymaster — confirm should show $0 fees."
                 : "Open inside Base App for $0 gas. External wallets pay small Base gas."}

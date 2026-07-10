@@ -5,7 +5,6 @@ import {
   useWriteContractWithBuilder,
   type WriteContractParams,
 } from "@/lib/useWriteContractWithBuilder";
-import { usePaymasterStatus } from "@/lib/usePaymasterStatus";
 
 type SponsoredContractButtonProps = {
   params: WriteContractParams;
@@ -16,7 +15,7 @@ type SponsoredContractButtonProps = {
   children: ReactNode;
 };
 
-/** Regular button that sends gas-sponsored calls via CDP Paymaster when supported. */
+/** Sends txs; uses CDP Paymaster when billing is healthy, otherwise user-paid gas. */
 export function SponsoredContractButton({
   params,
   className,
@@ -27,41 +26,22 @@ export function SponsoredContractButton({
 }: SponsoredContractButtonProps) {
   const { writeContract, isConfirming, isSuccess, error } =
     useWriteContractWithBuilder();
-  const { billingOk, healthError } = usePaymasterStatus();
 
   useEffect(() => {
     if (isSuccess) onSuccess?.();
   }, [isSuccess, onSuccess]);
-
-  const billingBlocked = billingOk === false;
 
   return (
     <div className="sponsored-action-wrap">
       <button
         type="button"
         className={className}
-        disabled={disabled || isConfirming || billingBlocked}
+        disabled={disabled || isConfirming}
         onClick={() => writeContract(params)}
-        title={
-          billingBlocked
-            ? healthError ||
-              "CDP Paymaster billing is not set — add a payment method in CDP Portal"
-            : undefined
-        }
       >
-        {billingBlocked
-          ? "Paymaster billing required"
-          : isConfirming
-            ? busyLabel
-            : children}
+        {isConfirming ? busyLabel : children}
       </button>
-      {billingBlocked && (
-        <p className="mint-err">
-          {healthError ||
-            "CDP Paymaster needs a payment method. Add one at portal.cdp.coinbase.com → Billing."}
-        </p>
-      )}
-      {error && !billingBlocked && (
+      {error && (
         <p className="mint-err">
           {(error as { shortMessage?: string }).shortMessage ||
             error.message ||
