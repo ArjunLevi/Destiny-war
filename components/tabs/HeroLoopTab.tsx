@@ -58,6 +58,10 @@ function HeroUpgradeCard({
   energy: number;
   onRefetch: () => void;
 }) {
+  const [pendingStat, setPendingStat] = useState<StatType | null>(null);
+  const { writeContract, isConfirming, isSuccess, error } =
+    useWriteContractWithBuilder();
+
   const { data: hero } = useReadContract({
     address: DESTINY_HUB_ADDRESS as `0x${string}`,
     abi: hubAbi,
@@ -65,6 +69,12 @@ function HeroUpgradeCard({
     args: [tokenId],
     query: { enabled: hubConfigured },
   });
+
+  useEffect(() => {
+    if (!isSuccess) return;
+    onRefetch();
+    setPendingStat(null);
+  }, [isSuccess, onRefetch]);
 
   if (!hero) return null;
 
@@ -77,11 +87,21 @@ function HeroUpgradeCard({
   const meta = HEROES.find((x) => x.id === h.classId) ?? HEROES[0];
   const avgStat = Math.round((h.power + h.strength + h.speed) / 3);
 
-  const stats: { key: StatType; val: number; label: string }[] = [
-    { key: "power", val: h.power, label: "Power" },
-    { key: "strength", val: h.strength, label: "Strength" },
-    { key: "speed", val: h.speed, label: "Speed" },
+  const stats: { key: StatType; val: number; label: string; short: string }[] = [
+    { key: "power", val: h.power, label: "Power", short: "P" },
+    { key: "strength", val: h.strength, label: "Strength", short: "S" },
+    { key: "speed", val: h.speed, label: "Speed", short: "D" },
   ];
+
+  const upgrade = (stat: StatType) => {
+    setPendingStat(stat);
+    writeContract({
+      address: DESTINY_HUB_ADDRESS as `0x${string}`,
+      abi: hubAbi,
+      functionName: "upgradeStat",
+      args: [tokenId, statIndex(stat)],
+    });
+  };
 
   return (
     <div className="hero-upgrade-card">
@@ -98,23 +118,28 @@ function HeroUpgradeCard({
           <StatBar key={key} label={label} value={val} />
         ))}
         <div className="upgrade-btns">
-          {stats.map(({ key, val, label }) => (
-            <SponsoredContractButton
-              key={key}
-              params={{
-                address: DESTINY_HUB_ADDRESS as `0x${string}`,
-                abi: hubAbi,
-                functionName: "upgradeStat",
-                args: [tokenId, statIndex(key)],
-              }}
-              className="btn secondary upgrade-stat-btn"
-              disabled={val >= STAT_MAX || energy < 1}
-              onSuccess={onRefetch}
-            >
-              +{label[0]}
-            </SponsoredContractButton>
-          ))}
+          {stats.map(({ key, val, label, short }) => {
+            const busy = isConfirming && pendingStat === key;
+            const disabled = val >= STAT_MAX || energy < 1 || isConfirming;
+            return (
+              <button
+                key={key}
+                type="button"
+                className="btn secondary upgrade-stat-btn"
+                disabled={disabled}
+                title={`Upgrade ${label} (+1%)`}
+                onClick={() => upgrade(key)}
+              >
+                {busy ? "…" : `+${short}`}
+              </button>
+            );
+          })}
         </div>
+        {error && pendingStat && (
+          <p className="upgrade-err">
+            {(error as { shortMessage?: string }).shortMessage || "Upgrade failed"}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -282,7 +307,10 @@ export function HeroLoopTab() {
 
   return (
     <div className="screen loop-tab quest-tab">
-      <header className="quest-header">
+      <header className="quest-header cinematic-banner cinematic-banner--quest">
+        <div className="cinematic-banner-shade" aria-hidden />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/store/icon-1024.png" alt="Destiny War" className="quest-hero-logo" />
         <h1>Quest</h1>
         <p className="quest-tagline">
           Daily scrolls · wheel fortune · hero upgrades
@@ -359,16 +387,21 @@ export function HeroLoopTab() {
             {ids.length === 0 ? (
               <p className="quest-empty-note">Mint champions on Realm first.</p>
             ) : (
-              <div className="hero-upgrade-list">
-                {ids.map((id) => (
-                  <HeroUpgradeCard
-                    key={id.toString()}
-                    tokenId={id}
-                    energy={energy}
-                    onRefetch={refetchAll}
-                  />
-                ))}
-              </div>
+              <>
+                {energy < 1 && (
+                  <p className="quest-empty-note">No scrolls left — check in daily or spin the wheel.</p>
+                )}
+                <div className="hero-upgrade-list">
+                  {ids.map((id) => (
+                    <HeroUpgradeCard
+                      key={id.toString()}
+                      tokenId={id}
+                      energy={energy}
+                      onRefetch={refetchAll}
+                    />
+                  ))}
+                </div>
+              </>
             )}
           </section>
 
