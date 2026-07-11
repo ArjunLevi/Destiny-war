@@ -307,10 +307,7 @@ export function HeroLoopTab() {
 
   return (
     <div className="screen loop-tab quest-tab">
-      <header className="quest-header cinematic-banner cinematic-banner--quest">
-        <div className="cinematic-banner-shade" aria-hidden />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/store/icon-1024.png" alt="Destiny War" className="quest-hero-logo" />
+      <header className="quest-header">
         <h1>Quest</h1>
         <p className="quest-tagline">
           Daily scrolls · wheel fortune · hero upgrades
