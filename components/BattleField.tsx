@@ -1,6 +1,7 @@
 "use client";
 
 import type { Hero } from "@/lib/heroes";
+import { kingdomArenaBg } from "@/lib/arenaCombat";
 
 export type CombatFxKind =
   | "player-attack"
@@ -32,6 +33,7 @@ export function BattleField({
   hitTarget,
   hitKey,
   skillReady,
+  playerClassId,
 }: {
   player: FighterSide;
   enemy: FighterSide;
@@ -41,17 +43,19 @@ export function BattleField({
   hitTarget: "player" | "enemy" | null;
   hitKey: number;
   skillReady: boolean;
+  playerClassId?: number;
 }) {
-  const themeId = player.hero.id;
+  const themeId = playerClassId ?? player.hero.id;
   const fxClass = combatFx ? `fx-${combatFx.kind}` : "";
   const fxKey = combatFx?.key ?? 0;
+  const arenaBg = kingdomArenaBg(themeId);
 
   return (
     <div
       className={`battlefield bf-theme-${themeId} ${isBoss ? "bf-boss" : ""} ${fxClass}`}
       data-fx-key={fxKey}
       style={{
-        backgroundImage: `url(/art/class${Math.min(enemy.hero.id, 7)}.png)`,
+        backgroundImage: `url(${arenaBg})`,
       }}
     >
       <div className="bf-sky" aria-hidden />
@@ -79,7 +83,7 @@ export function BattleField({
             <img
               src={player.hero.portrait}
               alt={player.hero.name}
-              className="bf-fighter bf-fighter-you"
+              className="bf-fighter bf-fighter-you bf-idle"
             />
             {combatFx?.kind === "player-attack" && (
               <span className="bf-slash bf-slash-right" aria-hidden />
@@ -118,7 +122,7 @@ export function BattleField({
             <img
               src={enemy.hero.portrait}
               alt={enemy.hero.name}
-              className={`bf-fighter bf-fighter-foe ${enemy.isBoss ? "bf-fighter-boss" : ""}`}
+              className={`bf-fighter bf-fighter-foe bf-idle ${enemy.isBoss ? "bf-fighter-boss" : ""}`}
             />
             {(combatFx?.kind === "enemy-attack" || combatFx?.kind === "enemy-skill") && (
               <span className="bf-slash bf-slash-left" aria-hidden />

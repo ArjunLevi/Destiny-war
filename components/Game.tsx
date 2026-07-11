@@ -5,6 +5,15 @@ import { useComposeCast } from "@coinbase/onchainkit/minikit";
 import { HEROES, Hero } from "@/lib/heroes";
 import { Leaderboard } from "@/components/Leaderboard";
 import { BattleField, type CombatFx } from "@/components/BattleField";
+import { DestinyWallet } from "@/components/DestinyWallet";
+import {
+  applyOnchainStats,
+  arenaPowerRating,
+  formatOnchainStats,
+  type ArenaChampion,
+  type OnchainHeroStats,
+} from "@/lib/arenaCombat";
+import { useArenaChampions } from "@/lib/useArenaChampions";
 
 const MAX_ENERGY = 100;
 const START_ENERGY = 50;
@@ -29,10 +38,12 @@ type Combatant = {
   energy: number;
   st: Status;
   isBoss: boolean;
-  // run modifiers (player only)
   lifesteal: number;
   thorns: number;
   energyStart: number;
+  tokenId?: bigint;
+  onchain?: OnchainHeroStats;
+  arenaRating?: number;
 };
 
 type Upgrade = {
@@ -61,7 +72,7 @@ type State = {
 
 type Action =
   | { type: "GO_SELECT" }
-  | { type: "START"; heroId: number }
+  | { type: "START"; champion: ArenaChampion }
   | { type: "PLAYER"; kind: "attack" | "skill" | "defend" | "pass" }
   | { type: "ENEMY" }
   | { type: "CHOOSE"; id: string }
@@ -72,23 +83,40 @@ const clamp = (n: number, a: number, b: number) => Math.max(a, Math.min(b, n));
 const r = Math.round;
 const emptySt = (): Status => ({ burn: 0, poison: 0, weaken: 0, stun: 0, shield: 0 });
 
-function makeCombatant(hero: Hero, scale = 1, boss = false): Combatant {
+function makeCombatant(
+  hero: Hero,
+  scale = 1,
+  boss = false,
+  champion?: ArenaChampion,
+): Combatant {
+  const onchain = champion
+    ? {
+        power: champion.power,
+        strength: champion.strength,
+        speed: champion.speed,
+      }
+    : undefined;
+  const scaled = onchain ? applyOnchainStats(hero, onchain) : null;
   const s = scale * (boss ? 1.55 : 1);
+
   return {
     hero,
-    maxHp: r(hero.maxHp * s),
-    hp: r(hero.maxHp * s),
-    atk: r(hero.atk * (boss ? scale * 1.25 : scale)),
-    baseAtk: r(hero.atk * (boss ? scale * 1.25 : scale)),
-    def: r(hero.def * scale),
-    spd: hero.spd,
-    crit: hero.crit,
+    maxHp: r((scaled?.maxHp ?? hero.maxHp) * s),
+    hp: r((scaled?.maxHp ?? hero.maxHp) * s),
+    atk: r((scaled?.atk ?? hero.atk) * (boss ? scale * 1.25 : scale)),
+    baseAtk: r((scaled?.atk ?? hero.atk) * (boss ? scale * 1.25 : scale)),
+    def: r((scaled?.def ?? hero.def) * scale),
+    spd: scaled?.spd ?? hero.spd,
+    crit: scaled?.crit ?? hero.crit,
     energy: START_ENERGY,
     st: emptySt(),
     isBoss: boss,
     lifesteal: 0,
     thorns: 0,
     energyStart: START_ENERGY,
+    tokenId: champion?.tokenId,
+    onchain,
+    arenaRating: onchain ? arenaPowerRating(onchain) : undefined,
   };
 }
 
@@ -307,11 +335,13 @@ function reducer(state: State, action: Action): State {
       return { ...initialState, screen: "select" };
 
     case "START": {
-      const hero = HEROES.find((h) => h.id === action.heroId) ?? HEROES[0];
-      const player = makeCombatant(hero);
+      const hero =
+        HEROES.find((h) => h.id === action.champion.classId) ?? HEROES[0];
+      const player = makeCombatant(hero, 1, false, action.champion);
       const enemy = spawnEnemy(1, hero.id, false);
       const playerFirst = player.spd >= enemy.spd;
       const log = [
+        `Champion #${action.champion.tokenId} enters the arena (${player.arenaRating}% power).`,
         `Wave 1 — a ${enemy.hero.name} blocks your path!`,
         playerFirst ? "You move first." : "Enemy strikes first!",
       ];
@@ -648,7 +678,7 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-function Bars({ c }: { c: Combatant }) {
+function Bars({ c, showChampion }: { c: Combatant; showChampion?: boolean }) {
   const hpPct = clamp((c.hp / c.maxHp) * 100, 0, 100);
   const enPct = clamp((c.energy / MAX_ENERGY) * 100, 0, 100);
   return (
@@ -656,12 +686,22 @@ function Bars({ c }: { c: Combatant }) {
       <div className="row">
         <strong>
           {c.isBoss ? "👑 " : ""}
-          {c.hero.name}
+          {showChampion && c.tokenId != null ? (
+            <>
+              {c.hero.name}{" "}
+              <span className="champion-id-tag">#{c.tokenId.toString()}</span>
+            </>
+          ) : (
+            c.hero.name
+          )}
         </strong>
         <span className="muted">
           {c.hp}/{c.maxHp}
         </span>
       </div>
+      {showChampion && c.onchain && (
+        <p className="fighter-onchain-stats">{formatOnchainStats(c.onchain)}</p>
+      )}
       <div className="bar">
         <span
           style={{
@@ -697,6 +737,12 @@ export function Game({
   });
   const { composeCast } = useComposeCast();
   const [best, setBest] = useState(0);
+  const {
+    champions,
+    isLoading: championsLoading,
+    isConnected,
+    hubConfigured,
+  } = useArenaChampions();
 
   useEffect(() => {
     const v = Number(localStorage.getItem("dw_best") || "0");
@@ -717,12 +763,16 @@ export function Game({
     }
   }, [state.screen, state.turn, state.hitKey]);
 
-  const share = () =>
+  const share = () => {
+    const p = state.player;
+    const nft =
+      p?.tokenId != null
+        ? ` #${p.tokenId}${p.arenaRating ? ` (${p.arenaRating}% power)` : ""}`
+        : "";
     composeCast({
-      text: `I survived ${state.wave} waves in Destiny War: Arena with my ${
-        state.player?.hero.name ?? "hero"
-      }! ⚔️ Beat my run.`,
+      text: `I survived ${state.wave} waves in Destiny War Arena with my ${p?.hero.name ?? "champion"}${nft}! ⚔️ Beat my run on destinywar.app`,
     });
+  };
 
   // ---------- MENU ----------
   if (state.screen === "menu") {
@@ -732,8 +782,8 @@ export function Game({
         <img src="/art/logo.png" alt="Destiny War" className="logo" />
         <h1>Arena</h1>
         <p className="muted">
-          Choose a hero. Battle endless waves. Pick power-ups, beat bosses, and
-          climb the onchain leaderboard.
+          Deploy your minted champions. Onchain Quest upgrades boost HP, ATK, and
+          speed in battle. Climb the onchain leaderboard.
         </p>
         {best > 0 && <p className="best">Best run · Wave {best}</p>}
         <button className="btn gold" onClick={() => dispatch({ type: "GO_SELECT" })}>
@@ -745,36 +795,88 @@ export function Game({
     );
   }
 
-  // ---------- SELECT ----------
+  // ---------- SELECT (owned NFT champions) ----------
   if (state.screen === "select") {
     return (
-      <div className={`screen select ${embedded ? "embedded" : ""}`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/art/choose_class.png" alt="Choose your class" className="choose" />
-        <div className="grid">
-          {HEROES.map((h) => (
-            <button
-              key={h.id}
-              className="herocard"
-              onClick={() => dispatch({ type: "START", heroId: h.id })}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={h.portrait} alt={h.name} className="portrait" />
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={h.title} alt={h.name} className="titleimg" />
-              <div className="stats">
-                <span>HP {h.maxHp}</span>
-                <span>ATK {h.atk}</span>
-                <span>DEF {h.def}</span>
-                <span>SPD {h.spd}</span>
-              </div>
-              <p className="blurb">{h.blurb}</p>
-            </button>
-          ))}
-        </div>
-        <button className="btn secondary" onClick={() => dispatch({ type: "MENU" })}>
-          Back
-        </button>
+      <div className={`screen select arena-select ${embedded ? "embedded" : ""}`}>
+        <header className="arena-select-head">
+          <h2>Deploy Champion</h2>
+          <p className="muted">
+            Only your minted heroes fight. Upgrade stats in Quest for higher Arena
+            Power.
+          </p>
+        </header>
+
+        {!hubConfigured ? (
+          <p className="note arena-select-note">
+            Set <code>NEXT_PUBLIC_DESTINY_HUB_ADDRESS</code> to load champions.
+          </p>
+        ) : !isConnected ? (
+          <div className="arena-select-connect">
+            <p className="muted">Connect wallet to deploy your NFT champions.</p>
+            <DestinyWallet variant="cta" disconnectedLabel="Connect Wallet" />
+          </div>
+        ) : championsLoading ? (
+          <p className="muted arena-select-note">Loading your champions…</p>
+        ) : champions.length === 0 ? (
+          <div className="arena-select-empty card-panel">
+            <p>No champions yet.</p>
+            <p className="muted">Mint on Realm, upgrade in Quest, then return to fight.</p>
+          </div>
+        ) : (
+          <div className="arena-champion-grid">
+            {champions.map((c) => {
+              const scaled = applyOnchainStats(c.hero, c);
+              return (
+                <button
+                  key={c.tokenId.toString()}
+                  type="button"
+                  className="arena-champion-card"
+                  onClick={() =>
+                    dispatch({
+                      type: "START",
+                      champion: {
+                        tokenId: c.tokenId,
+                        classId: c.classId,
+                        power: c.power,
+                        strength: c.strength,
+                        speed: c.speed,
+                      },
+                    })
+                  }
+                >
+                  <div className="arena-champion-art">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={c.hero.portrait} alt={c.hero.name} className="portrait" />
+                    <span className="arena-champion-rating">{c.rating}%</span>
+                  </div>
+                  <div className="arena-champion-body">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={c.hero.title} alt={c.hero.name} className="titleimg" />
+                    <p className="arena-champion-id">Champion #{c.tokenId.toString()}</p>
+                    <div className="arena-champion-stats">
+                      <span title="Power">P {c.power}%</span>
+                      <span title="Strength">S {c.strength}%</span>
+                      <span title="Speed">D {c.speed}%</span>
+                    </div>
+                    <div className="arena-champion-combat">
+                      <span>HP {scaled.maxHp}</span>
+                      <span>ATK {scaled.atk}</span>
+                      <span>DEF {scaled.def}</span>
+                      <span>SPD {scaled.spd}</span>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {!embedded && (
+          <button className="btn secondary" onClick={() => dispatch({ type: "MENU" })}>
+            Back
+          </button>
+        )}
       </div>
     );
   }
@@ -820,6 +922,17 @@ export function Game({
         <span className="muted">Best {Math.max(best, state.wave)}</span>
       </div>
 
+      {player.tokenId != null && player.onchain && (
+        <div className="arena-battle-hud">
+          <span className="arena-battle-nft">
+            <span className="onchain-pill">ONCHAIN</span>
+            Champion #{player.tokenId.toString()} · {player.hero.name}
+          </span>
+          <span className="arena-battle-stats">{formatOnchainStats(player.onchain)}</span>
+          <span className="arena-battle-power">Arena {player.arenaRating}%</span>
+        </div>
+      )}
+
       <BattleField
         player={player}
         enemy={enemy}
@@ -829,10 +942,11 @@ export function Game({
         hitTarget={state.hitTarget}
         hitKey={state.hitKey}
         skillReady={skillReady}
+        playerClassId={player.hero.id}
       />
 
       <div className="bf-stats-row">
-        <Bars c={player} />
+        <Bars c={player} showChampion />
         <Bars c={enemy} />
       </div>
 
@@ -884,15 +998,32 @@ export function Game({
       ) : (
         <div className="gameover stack">
           <h2>Defeated · Wave {state.wave}</h2>
+          {player.tokenId != null && (
+            <p className="arena-run-summary">
+              {player.hero.name} #{player.tokenId.toString()} · Arena {player.arenaRating}%
+            </p>
+          )}
           <Leaderboard wave={state.wave} onShare={share} />
           <button
             className="btn"
-            onClick={() => dispatch({ type: "START", heroId: player.hero.id })}
+            onClick={() => {
+              if (!player.tokenId || !player.onchain) return;
+              dispatch({
+                type: "START",
+                champion: {
+                  tokenId: player.tokenId,
+                  classId: player.hero.id,
+                  power: player.onchain.power,
+                  strength: player.onchain.strength,
+                  speed: player.onchain.speed,
+                },
+              });
+            }}
           >
-            Retry as {player.hero.name}
+            Retry {player.hero.name} #{player.tokenId?.toString() ?? ""}
           </button>
           <button className="btn secondary" onClick={() => dispatch({ type: "GO_SELECT" })}>
-            Choose another hero
+            Choose another champion
           </button>
         </div>
       )}
