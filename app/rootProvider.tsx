@@ -3,7 +3,7 @@
 import { ReactNode } from "react";
 import { base } from "wagmi/chains";
 import { OnchainKitProvider } from "@coinbase/onchainkit";
-import { APP_ICON_URL, APP_ORIGIN } from "@/lib/appUrl";
+import { APP_ICON_PATH, APP_ORIGIN } from "@/lib/appUrl";
 
 export function RootProvider({ children }: { children: ReactNode }) {
   return (
@@ -14,7 +14,7 @@ export function RootProvider({ children }: { children: ReactNode }) {
         appearance: {
           mode: "dark",
           name: "DestinyWar",
-          logo: APP_ICON_URL,
+          logo: APP_ICON_PATH,
         },
         wallet: {
           display: "modal",
