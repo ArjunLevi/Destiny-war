@@ -635,11 +635,6 @@ h3 {
   position: relative;
   z-index: 1;
 }
-.cinematic-banner--arena {
-  text-align: center;
-  padding: 22px 12px 18px;
-  min-height: 148px;
-}
 .cinematic-banner--throne {
   text-align: center;
   padding: 18px 12px 16px;
@@ -2172,26 +2167,14 @@ button.destiny-wallet-btn {
   gap: 14px;
   padding-bottom: 20px;
 }
-.arena-hero-banner {
-  /* extends .cinematic-banner--arena */
+.arena-header {
+  text-align: center;
 }
-.arena-hero-glow {
-  display: none;
-}
-.arena-hero-logo {
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
-  filter: drop-shadow(0 0 12px rgba(255, 204, 77, 0.45));
-}
-.arena-hero-banner h1 {
-  margin: 8px 0 4px;
-  font-size: 32px;
-  color: var(--gold);
-  letter-spacing: 2px;
+.arena-header h1 {
+  margin: 0;
 }
 .arena-hero-tag {
-  margin: 0;
+  margin: 6px 0 0;
   font-size: 13px;
   color: var(--muted);
 }

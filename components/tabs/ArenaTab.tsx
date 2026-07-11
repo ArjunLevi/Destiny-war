@@ -78,10 +78,7 @@ export function ArenaTab() {
 
   return (
     <div className="arena-tab">
-      <header className="arena-hero-banner cinematic-banner cinematic-banner--arena">
-        <div className="cinematic-banner-shade" aria-hidden />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/store/icon-1024.png" alt="" className="arena-hero-logo" />
+      <header className="arena-header">
         <h1>Arena</h1>
         <p className="arena-hero-tag">
           Your NFT champions fight · onchain stats matter · global leaderboard
